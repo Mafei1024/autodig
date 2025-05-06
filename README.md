@@ -3,12 +3,13 @@
 autodig是基于go-ast的自动生成[dig](https://github.com/uber-go/dig)的依赖注入代码的工具。
 
 ## 基础用法
-```go get ```
 
-```go install ```
+```go get github.com/Mafei1024/autodig```
 
-``` $(CURDIR)/build/bin/autodig -scans ./app -output ./app```
-``` $(CURDIR)/build/bin/(autodig)  可以自己去生成文件名称 autodig_gen,不需要加.go ```
+```go install github.com/Mafei1024/autodig```
+
+``` $(GOPATH)/bin/autodig -scans ./app -output ./app```
+``` -output ./app  可以自定义去生成文件名称 autodig_gen.go,-output ./app/autodig_gen.go ```
 会在./app下生成autodig.go文件，里面包含所有./app下标记了 ```//@autodig```的方法/类的相关依赖注入代码
 
 Source Code:
