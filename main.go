@@ -27,7 +27,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println("=========autodig start==========")
+	fmt.Println("\033[34m=========autodig start==========\033[0m")
 	flag.Parse()
 	scanDirFlag := flag.Lookup("scan")
 	outputFileFlag := flag.Lookup("output")
@@ -56,5 +56,5 @@ func main() {
 		fmt.Println(err)
 		panic(err)
 	}
-	fmt.Println("=========autodig success!!==========")
+	fmt.Println("\033[32m=========autodig success!!==========\033[0m")
 }
