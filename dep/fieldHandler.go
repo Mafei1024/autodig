@@ -27,7 +27,6 @@ func (h *FieldHandler) changeImport(field *ast.Field) error {
 // nolint
 func (h *FieldHandler) changeImportExpr(expr ast.Expr) (ast.Expr, error) {
 	var err error
-	fmt.Println("---------------", reflect.TypeOf(expr).Elem().Name())
 	switch reflect.TypeOf(expr).Elem().Name() {
 	case StarExpr:
 		expr := expr.(*ast.StarExpr)
