@@ -27,6 +27,7 @@ func (h *FieldHandler) changeImport(field *ast.Field) error {
 // nolint
 func (h *FieldHandler) changeImportExpr(expr ast.Expr) (ast.Expr, error) {
 	var err error
+	fmt.Println("---------------", reflect.TypeOf(expr).Elem().Name())
 	switch reflect.TypeOf(expr).Elem().Name() {
 	case StarExpr:
 		expr := expr.(*ast.StarExpr)
@@ -50,6 +51,18 @@ func (h *FieldHandler) changeImportExpr(expr ast.Expr) (ast.Expr, error) {
 		if !containsString(basicIdentName, identExpr.Name) && h.fileCtx.importGlobalPath != h.importCtx.outputImportPath {
 			expr = &ast.SelectorExpr{X: &ast.Ident{Name: h.fileCtx.importGlobalName}, Sel: &ast.Ident{Name: identExpr.Name}}
 		}
+	case IndexExpr:
+		indexExpr := expr.(*ast.IndexExpr)
+		var err error
+		indexExpr.X, err = h.changeImportExpr(indexExpr.X)
+		if err != nil {
+			return nil, err
+		}
+		indexExpr.Index, err = h.changeImportExpr(indexExpr.Index)
+		if err != nil {
+			return nil, err
+		}
+		expr = indexExpr
 	case MapType:
 		mapExpr := expr.(*ast.MapType)
 		keyElt, err := h.changeImportExpr(mapExpr.Key)
@@ -69,6 +82,7 @@ func (h *FieldHandler) changeImportExpr(expr ast.Expr) (ast.Expr, error) {
 			return nil, err
 		}
 		arrayExpr.Elt = elt
+
 	default:
 		return nil, fmt.Errorf("===========field type invalid")
 	}

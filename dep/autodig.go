@@ -29,7 +29,7 @@ func (a *Autodig) GenDigFile() error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove(a.outputDir)
+	err = os.RemoveAll(a.outputDir)
 	if err != nil {
 		fmt.Println("delete autodig file warn", err.Error())
 	}
@@ -43,7 +43,6 @@ func (a *Autodig) GenDigFile() error {
 		fmt.Println(err)
 		return err
 	}
-	defer outputfile.Close()
 	err = a.write(outputfile, outputPkgName, decls)
 	if err != nil {
 		fmt.Println(err)

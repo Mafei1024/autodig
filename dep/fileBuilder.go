@@ -16,6 +16,7 @@ const (
 	depProvideMethod      = "MustProvide"
 	StarExpr              = "StarExpr"
 	Ident                 = "Ident"
+	IndexExpr             = "IndexExpr"
 	SelectorExpr          = "SelectorExpr"
 	MapType               = "MapType"
 	ArrayType             = "ArrayType"
