@@ -8,8 +8,7 @@ import (
 
 const (
 	ReturnFieldName = "DigReturn"
-	InGroupName     = "ingroup"
-	OutGroupName    = "outgroup"
+	GroupName       = "group"
 	Name            = "name"
 	TagName         = "tag"
 	IgnoreName      = "-"
@@ -50,7 +49,7 @@ func parseFieldInfo(field *ast.Field) *fieldInfo {
 	for _, eachTag := range tags {
 		params := strings.Split(eachTag, ":")
 		switch params[0] {
-		case InGroupName:
+		case GroupName:
 			if len(params) == 2 {
 				ret.inGroup = params[1]
 			}
@@ -78,7 +77,7 @@ func parseComment(doc string) *comment {
 	for _, eachTag := range tags {
 		params := strings.Split(eachTag, ":")
 		switch params[0] {
-		case OutGroupName:
+		case GroupName:
 			if len(params) == 2 {
 				funDoc.outGroup = params[1]
 			}

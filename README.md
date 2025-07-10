@@ -118,23 +118,17 @@ func NewdemoControllerDemo(Service *demo.Service) (demo.ControllerI, error) {
 通过在注释上增加 outgroup:组名 即可指定注入到某个group。 e.g.
 Source Code:
 ```golang
-//@autodig outgroup:restControllers
-type ControllerDemo struct {
-	DigReturn  ControllerI
-	Service *Service
-}
-
-//@autodig outgroup:loggers
+//@autodig group:loggers
 func NewLogger() Logger {
 	return Logger{}
 }
 ```
-当需要依赖注入中某个group的所有对象时，给对应field(必须是array)加上tag```autodig:"ingroup:组名"```即可。e.g.
+当需要依赖注入中某个group的所有对象时，给对应field(必须是array)加上tag```autodig:"group:组名"```即可。e.g.
 Source Code:
 ```golang
 //@autodig
 type Service struct {
-	Loggers []Logger `autodig:"ingroup:loggers"`
+	Loggers []Logger `autodig:"group:loggers"`
 	config string
 }
 ```
@@ -215,14 +209,14 @@ func init() {
 
 SourceCode:
 ```golang
-//@autodig outgroup:restControllers tag:mock
+//@autodig group:restControllers tag:mock
 type ControllerDemo struct {
 	DigReturn  ControllerI
 	Service *Service
 }
 //@autodig tag:!mock
 type Service struct {
-	Loggers []Logger `autodig:"ingroup:loggers"`
+	Loggers []Logger `autodig:"group:loggers"`
 	config  string
 }
 ```
