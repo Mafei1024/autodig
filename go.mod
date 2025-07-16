@@ -1,4 +1,4 @@
-module github.com/Mafei1024/autodig
+module github.com/Mafei1024/autodig/v2
 
 go 1.18
 
