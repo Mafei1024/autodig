@@ -87,6 +87,20 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 	funcs := []ast.Decl{importCtx.globalImportDecl}
 	fset := token.NewFileSet()
 	allDigFuncs := make(map[string]*eachDigFuncs)
+	decls := make([]ast.Decl, 0, 512)
+	// 第一次扫描：收集所有声明用于接口分析
+	for _, file := range files {
+		fileAST, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
+		if err != nil {
+			return nil, fmt.Errorf("parseFile file: %s, err: %v ", file, err)
+		}
+		decls = append(decls, fileAST.Decls...)
+	}
+	// 解析并收集接口列表
+	if err := parseInterfaceList(decls); err != nil {
+		return nil, err
+	}
+	// 第二次扫描：生成工厂函数
 	for _, file := range files {
 		eachFileFuncs, err := b.handleEachFile(file, fset)
 		if err != nil {
@@ -106,9 +120,10 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 			}
 		}
 	}
-	is := parseinterfaceFuncsToStruct()
-	funcs = append(funcs, is...)
-	for _, i := range is {
+	// 生成接口聚合函数
+	interfaceAggFuncs := parseinterfaceFuncsToStruct()
+	funcs = append(funcs, interfaceAggFuncs...)
+	for _, i := range interfaceAggFuncs {
 		if allDigFuncs[""] == nil {
 			allDigFuncs[""] = new(eachDigFuncs)
 		}
@@ -133,10 +148,6 @@ func (b *fileBuilder) handleEachFile(file string, fset *token.FileSet) (map[stri
 	b.GenDeclHandlers(fileCtx)
 	funcGroupMap := make(map[string]*eachDigFuncs)
 	funcStructMap := make(map[string]*ast.FuncDecl)
-	// 第一次解析
-	if err := parseInterfaceList(fileAST.Decls); err != nil {
-		return nil, err
-	}
 	// 遍历文件内容，找到所有需要自动依赖注入的struct
 	for _, decl := range fileAST.Decls {
 		newGlobalFunc, err := b.getDeclHandler(decl).Handle(decl)

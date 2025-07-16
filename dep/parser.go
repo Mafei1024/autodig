@@ -19,6 +19,7 @@ var (
 	interfaceReturns                = make(map[string][]string)
 	interfaceReturnsToFuncsToStruct = make(map[string]*ast.Field)
 	interfaceFuncsToStruct          = make(map[*ast.Field][]string)
+	interfaceTypes                  = make(map[string]bool)
 	tagReg                          = regexp.MustCompile(`autodig:"(.+)"`)
 	docReg                          = regexp.MustCompile(`@autodig (.*)`)
 	initFieldInfo                   = &fieldInfo{ignore: false, isReturn: false}
@@ -38,9 +39,10 @@ type commentAutodig struct {
 func parseinterfaceFuncsToStruct() []ast.Decl {
 	decls := make([]ast.Decl, 0)
 	for iface, names := range interfaceFuncsToStruct {
+		identName := strings.Join(names, "_")
 		initFunc := &ast.FuncDecl{
 			Name: &ast.Ident{
-				Name: "New" + fmt.Sprintf("%v", iface.Type) + "All",
+				Name: "New" + fmt.Sprintf("%v", identName) + "_All",
 			},
 			Type: &ast.FuncType{Params: &ast.FieldList{List: nil}},
 			Body: &ast.BlockStmt{
@@ -56,12 +58,12 @@ func parseinterfaceFuncsToStruct() []ast.Decl {
 			for i, name := range names {
 				tag := fmt.Sprintf("name:\"%s\"", name)
 				ret := &ast.TypeSpec{}
-				ParamName := fmt.Sprintf("%vParam%d", iface.Type, i)
+				ParamName := fmt.Sprintf("param%d", i)
 				ret.Name = &ast.Ident{
 					Name: ParamName,
 					Obj: &ast.Object{
 						Kind: ast.Typ,
-						Name: fmt.Sprintf("%vParam", iface.Type),
+						Name: fmt.Sprintf("param%d", i),
 						Decl: ret,
 					},
 				}
@@ -152,6 +154,25 @@ func parseinterfaceFuncsToStruct() []ast.Decl {
 }
 
 func parseInterfaceList(decls []ast.Decl) error {
+	for _, decl := range decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		if genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			// 检查是否为接口类型
+			if _, isInterface := typeSpec.Type.(*ast.InterfaceType); isInterface {
+				interfaceTypes[typeSpec.Name.Name] = true
+			}
+		}
+	}
 	// 解析所有结构体,并收集所有实现接口集
 	for _, decl := range decls {
 		// 方法中的初始化
@@ -167,11 +188,9 @@ func parseInterfaceList(decls []ast.Decl) error {
 				continue
 			}
 			// 判断返回的是否是接口类型
-			ident, ok := funcDecl.Type.Results.List[0].Type.(*ast.Ident)
-			if !ok {
-				continue
-			}
-			if reflect.TypeOf(ident).Kind() != reflect.Ptr {
+			returnType := funcDecl.Type.Results.List[0].Type
+			interfaceName := getTypeName(returnType)
+			if interfaceName == "" || !isInterfaceType(interfaceName) {
 				continue
 			}
 			var comment *commentAutodig
@@ -225,11 +244,8 @@ func parseInterfaceList(decls []ast.Decl) error {
 		for _, field := range fields {
 			if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
 				// 判断返回的是否是接口类型
-				ident, ok := field.Type.(*ast.Ident)
-				if !ok {
-					continue
-				}
-				if reflect.TypeOf(ident).Kind() != reflect.Ptr {
+				interfaceName := getTypeName(field.Type)
+				if interfaceName == "" || !isInterfaceType(interfaceName) {
 					continue
 				}
 				returnName := fmt.Sprintf("%v", field.Type)
@@ -246,6 +262,32 @@ func parseInterfaceList(decls []ast.Decl) error {
 		}
 	}
 	return nil
+}
+
+func isInterfaceType(typeName string) bool {
+	// 处理包名.类型名的情况
+	if strings.Contains(typeName, ".") {
+		parts := strings.Split(typeName, ".")
+		typeName = parts[len(parts)-1]
+	}
+	return interfaceTypes[typeName]
+}
+
+func getTypeName(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		return getTypeName(t.X)
+	case *ast.SelectorExpr:
+		// 处理包名.类型名的情况
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name + "." + t.Sel.Name
+		}
+		return t.Sel.Name
+	default:
+		return ""
+	}
 }
 
 func parseFieldInfo(field *ast.Field) *fieldInfo {
