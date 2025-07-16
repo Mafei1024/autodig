@@ -200,7 +200,6 @@ func (h *importHandler) getOutputImportPath(outPutDir string) (string, string, e
 	pkgPath := outputPkg[0].ID
 	pkgName := outputPkg[0].Name
 	if len(outputPkg[0].Errors) > 0 {
-		fmt.Println(fmt.Errorf("get outputpkg path err: %v", outputPkg[0].Errors))
 		pkgName, err = getDefaultPkgNameByFile(outPutDir)
 		if err != nil {
 			return "", "", fmt.Errorf("getOutputImportPath err: %v", err)
