@@ -8,10 +8,9 @@ import (
 )
 
 type genDeclHandler struct {
-	importCtx       *ImportCtx
-	fileCtx         *fileCtx
-	cmdTagCheckFunc func(codeTag string) bool
-	fieldHandler    *FieldHandler
+	importCtx    *ImportCtx
+	fileCtx      *fileCtx
+	fieldHandler *FieldHandler
 }
 
 func (h *genDeclHandler) Handle(decl ast.Decl) (*globalNewFunc, error) {
@@ -29,18 +28,14 @@ func (h *genDeclHandler) Handle(decl ast.Decl) (*globalNewFunc, error) {
 	if newFuncDecl == nil {
 		return nil, nil
 	}
-	if comment.outGroup == "" {
-		comment.outGroup = GroupNameDefault
-	}
 	return &globalNewFunc{
 		decl:       newFuncDecl,
 		structName: structName,
-		groupName:  comment.outGroup,
 		name:       comment.name,
 	}, nil
 }
 
-func (h *genDeclHandler) buildNewFuncByGenDecl(genDecl *ast.GenDecl) (structName string, comment *comment, newFunc *ast.FuncDecl, err error) {
+func (h *genDeclHandler) buildNewFuncByGenDecl(genDecl *ast.GenDecl) (structName string, comment *commentAutodig, newFunc *ast.FuncDecl, err error) {
 	valid, structNameIdent, specType := checkGenDecl(genDecl)
 	if !valid {
 		return
@@ -52,13 +47,47 @@ func (h *genDeclHandler) buildNewFuncByGenDecl(genDecl *ast.GenDecl) (structName
 			break
 		}
 	}
-	if comment != nil {
-		if !h.cmdTagCheckFunc(comment.tag) {
-			return
+	newFunc, err = h.buildNewFuncByStruct(structNameIdent, specType)
+	comment = h.refactorCommon(specType, comment, structNameIdent)
+	return
+}
+
+func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *commentAutodig, structNameIdent *ast.Ident) *commentAutodig {
+	for _, field := range specType.Fields.List {
+		if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
+			fal := false
+			if comment == nil {
+				fal = true
+				comment = &commentAutodig{
+					name: structNameIdent.Name,
+				}
+			}
+			if comment.name == "" {
+				fal = true
+				comment.name = structNameIdent.Name
+			}
+			interfaceName := fmt.Sprintf("%v", field.Type)
+			ss := interfaceReturns[interfaceName]
+			name := structNameIdent.Name
+			if comment.name != "" {
+				name = comment.name
+			}
+			if inSlice(ss, name) {
+				f, h := interfaceReturnsToFuncsToStruct[interfaceName]
+				if h {
+					interfaceFuncsToStruct[f] = append(interfaceFuncsToStruct[f], name)
+				} else {
+					interfaceFuncsToStruct[field] = []string{name}
+					interfaceReturnsToFuncsToStruct[interfaceName] = field
+				}
+			}
+			if fal && len(ss) <= 1 {
+				comment.name = ""
+			}
+			break
 		}
 	}
-	newFunc, err = h.buildNewFuncByStruct(structNameIdent, specType)
-	return
+	return comment
 }
 
 func (h *genDeclHandler) buildNewFuncByStruct(structName *ast.Ident, specType *ast.StructType) (*ast.FuncDecl, error) {
@@ -101,12 +130,11 @@ func (h *genDeclHandler) scanFieldInStruct(specType *ast.StructType) (*structFie
 		if fieldInfo.isReturn {
 			result.markReturnField = field
 		} else {
-			if fieldInfo.inGroup == "" && fieldInfo.name == "" {
+			if fieldInfo.name == "" {
 				result.noTagFields = append(result.noTagFields, field)
 			} else {
 				result.tagFields = append(result.tagFields, &fieldWithTag{
 					name:  fieldInfo.name,
-					group: fieldInfo.inGroup,
 					field: field,
 				})
 			}
@@ -194,14 +222,6 @@ func (h *genDeclHandler) buildInGroupParam(tagFields []*fieldWithTag, structName
 
 func (h *genDeclHandler) handleEachInGroupField(fieldwithTag *fieldWithTag, paramType *ast.TypeSpec) (*ast.Field, *ast.KeyValueExpr, error) {
 	tag := ""
-	if fieldwithTag.group != "" {
-		// 0.校验本field是否是[]
-		_, ok := fieldwithTag.field.Type.(*ast.ArrayType)
-		if !ok {
-			return nil, nil, fmt.Errorf("%s-%s should be array", h.fileCtx.file, fieldwithTag.field.Names[0].Name)
-		}
-		tag += fmt.Sprintf("group:\"%s\"", fieldwithTag.group)
-	}
 	if fieldwithTag.name != "" {
 		if tag != "" {
 			tag += " "

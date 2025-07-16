@@ -52,8 +52,6 @@ Usage of autodig:
         output file path (default "./app/entrypoint/autodig.go")
   -scans string
         source code scan dirs, split with ',' (default "./app")
-  -tag string
-        tag, only support one, e.g.mock will only generate `//@autodig` or `//@autodig tag:mock` funcs/structs
 ```
 不传参数默认扫描./app，生成文件为./app/entrypoint/autodig.go
 
@@ -95,6 +93,7 @@ func NewdemoService(Logger string) (*demo.Service, error) {
 ```
 #### Struct:注入其他类型
 struct默认是注入*Struct，可以通过DigReturn字段指定其他类型。e.g.
+(新增，还会输出一个接口数组。注：接口只有单个实现时加入name标签，数组就会失效报错)
 Source Code:
 ```golang
 type ControllerI interface {
@@ -113,50 +112,110 @@ func NewdemoControllerDemo(Service *demo.Service) (demo.ControllerI, error) {
 	controllerdemo := demo.ControllerDemo{Service: Service, Return: nil}
 	return &controllerdemo, autoDigErr
 }
-```
-#### group
-通过在注释上增加 outgroup:组名 即可指定注入到某个group。 e.g.
-Source Code:
-```golang
-//@autodig group:loggers
-func NewLogger() Logger {
-	return Logger{}
+
+func NewControllerDemoAll(param demo.ControllerI) ([]demo.ControllerI, error) {
+    var results []demo.ControllerI = make([]demo.ControllerI, 0, 1)
+    results = append(results, param)
+    return results, nil
 }
 ```
-当需要依赖注入中某个group的所有对象时，给对应field(必须是array)加上tag```autodig:"group:组名"```即可。e.g.
+#### Struct:接口有多个实现时
+接口有多个实现时，就会默认给每个实现增加一个name输入（name默认使用结构体名称）
+方法体实现同理
 Source Code:
 ```golang
+type ControllerI interface {
+}
+
 //@autodig
-type Service struct {
-	Loggers []Logger `autodig:"group:loggers"`
-	config string
+type ControllerDemo1 struct {
+	DigReturn  ControllerI
+	Service *Service
+}
+//@autodig
+type ControllerDemo2 struct {
+    DigReturn  ControllerI
+    Service *Service
+}
+//@autodig name:cd3
+type ControllerDemo3 struct {
+    DigReturn  ControllerI
+    Service *Service
+}
+
+//@autodig
+func NewControllerDemo4() ControllerI {
+    return &ControllerDemo3{}
+}
+
+//@autodig
+func NewControllerDemo5() ControllerI {
+    return &ControllerDemo3{}
 }
 ```
 Output:
 ```golang
-func NewdemoControllerDemo(Service *demo.Service) (demo.ControllerI, error) {
+
+func main_NewControllerDemo4() ControllerI {
+    return NewControllerDemo4()
+}
+func main_NewControllerDemo5() ControllerI {
+    return NewControllerDemo5()
+}
+
+func NewdemoControllerDemo1(Service *demo.Service) (demo.ControllerI, error) {
 	var autoDigErr error
-	controllerdemo := demo.ControllerDemo{Service: Service, Return: nil}
+	controllerdemo := demo.ControllerDemo1{Service: Service, Return: nil}
 	return &controllerdemo, autoDigErr
 }
-func NewdemoService(demoServiceParam struct {
-	dig.In
-	Loggers []demo.Logger `group:"loggers"`
-}) (*demo.Service, error) {
-	var autoDigErr error
-	service := demo.Service{Loggers: demoServiceParam.Loggers}
-	return &service, autoDigErr
+
+func NewdemoControllerDemo2(Service *demo.Service) (demo.ControllerI, error) {
+    var autoDigErr error
+    controllerdemo := demo.ControllerDemo2{Service: Service, Return: nil}
+    return &controllerdemo, autoDigErr
 }
-func demo_NewLogger() demo.Logger {
-	return demo.NewLogger()
+
+func NewdemoControllerDemo3(Service *demo.Service) (demo.ControllerI, error) {
+    var autoDigErr error
+    controllerdemo := demo.ControllerDemo3{Service: Service, Return: nil}
+    return &controllerdemo, autoDigErr
 }
-func init() {
-	dep.MustProvide([]interface {
-	}{NewdemoControllerDemo}, dig.Group("restControllers"))
-	dep.MustProvide([]interface {
-	}{demo_NewLogger}, dig.Group("loggers"))
-	dep.MustProvide([]interface {
-	}{NewdemoService})
+
+func NewControllerIAll(ControllerIParam0 struct {
+    dig.In
+    ControllerI `name:"ControllerDemo1"`
+}, ControllerIParam1 struct {
+    dig.In
+    ControllerI `name:"ControllerDemo2"`
+}, ControllerIParam2 struct {
+    dig.In
+    ControllerI `name:"cd3"`
+}, ControllerIParam3 struct {
+    dig.In
+    ControllerI `name:"NewControllerDemo4"`
+}, ControllerIParam4 struct {
+    dig.In
+    ControllerI `name:"ncd5"`
+}) ([]ControllerI, error) {
+    var results []ControllerI = make([]ControllerI, 0, 5)
+    results = append(results, ControllerIParam0)
+    results = append(results, ControllerIParam1)
+    results = append(results, ControllerIParam2)
+    results = append(results, ControllerIParam3)
+    results = append(results, ControllerIParam4)
+    return results, nil
+}
+func init(){
+    dep.MustProvide([]interface {
+    }{main_NewControllerDemo4}, dig.Name("NewControllerDemo4"))
+    dep.MustProvide([]interface {
+    }{main_NewControllerDemo5}, dig.Name("ncd5"))
+    dep.MustProvide([]interface {
+    }{NewdemoControllerDemo3}, dig.Name("cd3"))
+    dep.MustProvide([]interface {
+    }{NewdemoControllerDemo2}, dig.Name("ControllerDemo2"))
+    dep.MustProvide([]interface {
+    }{NewdemoControllerDemo1}, dig.Name("ControllerDemo1"))	
 }
 ```
 #### name
@@ -196,51 +255,8 @@ func init() {
 }
 
 ```
-#### 条件扫描
-给@autodig注释增加tag，可以通过命令行的tag指定条件扫描，目前命令行仅支持一个tag,仅支持非关系。```// @autodig tag:mock```
+#### 条件扫描(作废，因为与接口多实现冲突，已删除功能)
 
-映射关系：
-
-|cmd tag| valid source code|
-|---|---|
-|"mock"|"" "mock"|
-|"!mock"|"" "!mock" "other"|
-|""|"" "!mock"|
-
-SourceCode:
-```golang
-//@autodig group:restControllers tag:mock
-type ControllerDemo struct {
-	DigReturn  ControllerI
-	Service *Service
-}
-//@autodig tag:!mock
-type Service struct {
-	Loggers []Logger `autodig:"group:loggers"`
-	config  string
-}
-```
-OutPut: cmd empty tag, no Controller
-```
-import (
-	demo "gitlab.p1staff.com/backend/tantan-backend-pcs/app/entrypoint/demo"
-	dep "autodig/dep"
-	dig "go.uber.org/dig"
-)
-
-func NewdemoService(demoServiceParam struct {
-	dig.In
-	Loggers []demo.Logger `group:"loggers"`
-}) (*demo.Service, error) {
-	var autoDigErr error
-	service := demo.Service{Loggers: demoServiceParam.Loggers}
-	return &service, autoDigErr
-}
-func init() {
-	dep.MustProvide([]interface {
-	}{NewdemoService})
-}
-```
 #### Struct:忽略字段
 想忽略某些Public Field时，在后面加上tag```autodig:"-"``` e.g.
 Source Code:

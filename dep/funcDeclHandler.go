@@ -7,10 +7,9 @@ import (
 )
 
 type funcDeclHandler struct {
-	importCtx       *ImportCtx
-	fileCtx         *fileCtx
-	cmdTagCheckFunc func(codeTag string) bool
-	fieldHandler    *FieldHandler
+	importCtx    *ImportCtx
+	fileCtx      *fileCtx
+	fieldHandler *FieldHandler
 }
 
 func (h *funcDeclHandler) Handle(decl ast.Decl) (*globalNewFunc, error) {
@@ -28,18 +27,14 @@ func (h *funcDeclHandler) Handle(decl ast.Decl) (*globalNewFunc, error) {
 	if newFuncDecl == nil {
 		return nil, nil
 	}
-	if comment.outGroup == "" {
-		comment.outGroup = GroupNameDefault
-	}
 	return &globalNewFunc{
-		decl:      newFuncDecl,
-		groupName: comment.outGroup,
-		name:      comment.name,
+		decl: newFuncDecl,
+		name: comment.name,
 	}, nil
 }
 
-func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.FuncDecl, *comment, error) {
-	var comment *comment
+func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.FuncDecl, *commentAutodig, error) {
+	var comment *commentAutodig
 	for i := 0; i < len(funcDecl.Doc.List); i++ {
 		comment = parseComment(funcDecl.Doc.List[i].Text)
 		if comment != nil {
@@ -48,9 +43,6 @@ func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.Func
 	}
 	if comment == nil {
 		return nil, nil, fmt.Errorf("parse func decl err, funcName:%s, file:%s", funcDecl.Name.Name, h.fileCtx.file)
-	}
-	if !h.cmdTagCheckFunc(comment.tag) {
-		return nil, nil, nil
 	}
 	err := h.changeFieldsImports(funcDecl.Type.Params)
 	if err != nil {
@@ -63,7 +55,44 @@ func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.Func
 	h.fillFuncBody(funcDecl)
 	funcDecl.Name.Name = fmt.Sprintf("%s_%s", h.fileCtx.importGlobalName, funcDecl.Name.Name)
 	funcDecl.Doc = nil
-	return funcDecl, comment, nil
+
+	return funcDecl, h.refactorCommon(comment, funcDecl), nil
+}
+
+func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.FuncDecl) *commentAutodig {
+	for _, result := range funcDecl.Type.Results.List {
+		fNames := strings.Split(fmt.Sprintf("%v", funcDecl.Name), "_")
+		name := fNames[len(fNames)-1]
+		fal := false
+		if comment == nil {
+			fal = true
+			comment = &commentAutodig{
+				name: name,
+			}
+		}
+		if comment.name == "" {
+			fal = true
+			comment.name = name
+		}
+		interfaceName := fmt.Sprintf("%v", result.Type)
+		ss := interfaceReturns[interfaceName]
+		if comment.name != "" {
+			name = comment.name
+		}
+		if inSlice(ss, name) {
+			f, h := interfaceReturnsToFuncsToStruct[interfaceName]
+			if h {
+				interfaceFuncsToStruct[f] = append(interfaceFuncsToStruct[f], name)
+			} else {
+				interfaceFuncsToStruct[result] = []string{name}
+				interfaceReturnsToFuncsToStruct[interfaceName] = result
+			}
+		}
+		if fal && len(ss) <= 1 {
+			comment.name = ""
+		}
+	}
+	return comment
 }
 
 func (h *funcDeclHandler) changeFieldsImports(fields *ast.FieldList) error {

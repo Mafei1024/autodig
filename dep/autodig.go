@@ -17,11 +17,10 @@ type Autodig struct {
 	importHandler ImportHandler
 	scanDirs      []string
 	outputDir     string
-	cmdTag        string
 }
 
-func NewAutodig(scanDirs []string, outputDir string, cmdTag string) *Autodig {
-	return &Autodig{importHandler: NewImportHandler(), scanDirs: scanDirs, outputDir: outputDir, cmdTag: cmdTag}
+func NewAutodig(scanDirs []string, outputDir string) *Autodig {
+	return &Autodig{importHandler: NewImportHandler(), scanDirs: scanDirs, outputDir: outputDir}
 }
 
 func (a *Autodig) GenDigFile() error {
@@ -97,7 +96,7 @@ func (a *Autodig) genDecls() ([]ast.Decl, string, error) {
 		return nil, "", fmt.Errorf("getAllImports err: %v ", err)
 	}
 	// 第二次遍历, 构建方法们
-	decls, err := NewFileBuilder(importCtx).BuildDecls(files, importCtx, a.cmdTag)
+	decls, err := NewFileBuilder(importCtx).BuildDecls(files, importCtx)
 	if err != nil {
 		return nil, "", fmt.Errorf("buildDecls err: %v ", err)
 	}

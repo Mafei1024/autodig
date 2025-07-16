@@ -10,17 +10,15 @@ import (
 )
 
 const (
-	digImportPath         = "go.uber.org/dig"
-	digProvideGroupMethod = "Group"
-	digProvideNameMethod  = "Name"
-	depProvideMethod      = "MustProvide"
-	StarExpr              = "StarExpr"
-	Ident                 = "Ident"
-	IndexExpr             = "IndexExpr"
-	SelectorExpr          = "SelectorExpr"
-	MapType               = "MapType"
-	ArrayType             = "ArrayType"
-	GroupNameDefault      = "default"
+	digImportPath        = "go.uber.org/dig"
+	digProvideNameMethod = "Name"
+	depProvideMethod     = "MustProvide"
+	StarExpr             = "StarExpr"
+	Ident                = "Ident"
+	IndexExpr            = "IndexExpr"
+	SelectorExpr         = "SelectorExpr"
+	MapType              = "MapType"
+	ArrayType            = "ArrayType"
 	// 项目不同需要更改此路径
 	depImportPath = "github.com/Mafei1024/autodig/dep"
 )
@@ -32,7 +30,6 @@ var (
 type globalNewFunc struct {
 	decl       *ast.FuncDecl
 	structName string
-	groupName  string
 	name       string
 }
 
@@ -45,9 +42,9 @@ type fileCtx struct {
 }
 
 type fieldWithTag struct {
-	field *ast.Field
-	group string
-	name  string
+	field   *ast.Field
+	name    string
+	digName string
 }
 
 type structFieldInfo struct {
@@ -61,7 +58,7 @@ type DeclHandler interface {
 }
 
 type FileBuilder interface {
-	BuildDecls(files []string, importCtx *ImportCtx, tag string) ([]ast.Decl, error)
+	BuildDecls(files []string, importCtx *ImportCtx) ([]ast.Decl, error)
 }
 
 type fileBuilder struct {
@@ -72,7 +69,6 @@ type fileBuilder struct {
 
 type eachDigFuncs struct {
 	funcDecls []ast.Decl
-	group     string
 	name      string
 }
 
@@ -80,20 +76,19 @@ func NewFileBuilder(importCtx *ImportCtx) FileBuilder {
 	return &fileBuilder{importCtx: importCtx}
 }
 
-func (b *fileBuilder) GenDeclHandlers(fileCtx *fileCtx, cmdTag string) {
-	cmdTagCheckFunc := b.genTagCheckFunc(cmdTag)
+func (b *fileBuilder) GenDeclHandlers(fileCtx *fileCtx) {
 	fieldHandler := NewFieldHandler(fileCtx, b.importCtx)
-	b.funcDeclHandler = &funcDeclHandler{importCtx: b.importCtx, fieldHandler: fieldHandler, fileCtx: fileCtx, cmdTagCheckFunc: cmdTagCheckFunc}
-	b.genDeclHandler = &genDeclHandler{importCtx: b.importCtx, fieldHandler: fieldHandler, fileCtx: fileCtx, cmdTagCheckFunc: cmdTagCheckFunc}
+	b.funcDeclHandler = &funcDeclHandler{importCtx: b.importCtx, fieldHandler: fieldHandler, fileCtx: fileCtx}
+	b.genDeclHandler = &genDeclHandler{importCtx: b.importCtx, fieldHandler: fieldHandler, fileCtx: fileCtx}
 }
 
-func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx, tag string) ([]ast.Decl, error) {
+func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.Decl, error) {
 	b.importCtx = importCtx
 	funcs := []ast.Decl{importCtx.globalImportDecl}
 	fset := token.NewFileSet()
 	allDigFuncs := make(map[string]*eachDigFuncs)
 	for _, file := range files {
-		eachFileFuncs, err := b.handleEachFile(file, fset, tag)
+		eachFileFuncs, err := b.handleEachFile(file, fset)
 		if err != nil {
 			return nil, fmt.Errorf("handleEachFile file: %s, err: %v ", file, err)
 		}
@@ -111,11 +106,19 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx, tag strin
 			}
 		}
 	}
+	is := parseinterfaceFuncsToStruct()
+	funcs = append(funcs, is...)
+	for _, i := range is {
+		if allDigFuncs[""] == nil {
+			allDigFuncs[""] = new(eachDigFuncs)
+		}
+		allDigFuncs[""].funcDecls = append(allDigFuncs[""].funcDecls, i)
+	}
 	funcs = append(funcs, b.buildInitFunc(allDigFuncs))
 	return funcs, nil
 }
 
-func (b *fileBuilder) handleEachFile(file string, fset *token.FileSet, tag string) (map[string]*eachDigFuncs, error) {
+func (b *fileBuilder) handleEachFile(file string, fset *token.FileSet) (map[string]*eachDigFuncs, error) {
 	fileAST, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("parseFile file: %s, err: %v ", file, err)
@@ -127,9 +130,13 @@ func (b *fileBuilder) handleEachFile(file string, fset *token.FileSet, tag strin
 		importGlobalPath: b.importCtx.getGlobalImportPathByFile(file),
 		importGlobalName: b.importCtx.getGlobalImportNameByFile(file),
 	}
-	b.GenDeclHandlers(fileCtx, tag)
+	b.GenDeclHandlers(fileCtx)
 	funcGroupMap := make(map[string]*eachDigFuncs)
 	funcStructMap := make(map[string]*ast.FuncDecl)
+	// 第一次解析
+	if err := parseInterfaceList(fileAST.Decls); err != nil {
+		return nil, err
+	}
 	// 遍历文件内容，找到所有需要自动依赖注入的struct
 	for _, decl := range fileAST.Decls {
 		newGlobalFunc, err := b.getDeclHandler(decl).Handle(decl)
@@ -139,14 +146,13 @@ func (b *fileBuilder) handleEachFile(file string, fset *token.FileSet, tag strin
 		if newGlobalFunc == nil {
 			continue
 		}
-		mapName := fmt.Sprintf("%s:%s", newGlobalFunc.groupName, newGlobalFunc.name)
+		mapName := fmt.Sprintf("%s", newGlobalFunc.name)
 		_, ok := funcGroupMap[mapName]
 		if ok {
 			funcGroupMap[mapName].funcDecls = append(funcGroupMap[mapName].funcDecls, newGlobalFunc.decl)
 		} else {
 			funcGroupMap[mapName] = &eachDigFuncs{
 				name:      newGlobalFunc.name,
-				group:     newGlobalFunc.groupName,
 				funcDecls: []ast.Decl{newGlobalFunc.decl},
 			}
 		}
@@ -229,22 +235,6 @@ func newInGroupStructType(fileCtx *fileCtx, structName *ast.Ident) *ast.TypeSpec
 	return ret
 }
 
-func (b *fileBuilder) genTagCheckFunc(cmdTag string) func(codeTag string) bool {
-	if cmdTag == "" {
-		return func(codeTag string) bool {
-			return codeTag == "" || codeTag[0] == '!'
-		}
-	}
-	if cmdTag[0] == '!' {
-		return func(codeTag string) bool {
-			return codeTag == "" || codeTag != cmdTag[1:]
-		}
-	}
-	return func(codeTag string) bool {
-		return codeTag == "" || codeTag == cmdTag
-	}
-}
-
 func (b *fileBuilder) buildInitFunc(digFuncs map[string]*eachDigFuncs) ast.Decl {
 	initFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
@@ -269,15 +259,6 @@ func (b *fileBuilder) buildInitFunc(digFuncs map[string]*eachDigFuncs) ast.Decl 
 				Type: &ast.ArrayType{Elt: &ast.InterfaceType{Methods: &ast.FieldList{List: nil}}},
 				Elts: funcList,
 			},
-		}
-		if eachDigFunc.group != GroupNameDefault {
-			args = append(args, &ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   &ast.Ident{Name: b.importCtx.getGlobalImportNameByPath(digImportPath)},
-					Sel: &ast.Ident{Name: digProvideGroupMethod},
-				},
-				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("\"%s\"", eachDigFunc.group)}},
-			})
 		}
 		if eachDigFunc.name != "" {
 			args = append(args, &ast.CallExpr{

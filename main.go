@@ -12,7 +12,6 @@ import (
 var (
 	scanDir    string
 	outputFile string
-	tag        string
 )
 
 func init() {
@@ -23,7 +22,6 @@ func init() {
 	}
 	flag.StringVar(&scanDir, "scans", fmt.Sprintf("%s/app", dir), "source code scan dirs, split with ','")
 	flag.StringVar(&outputFile, "output", fmt.Sprintf("%s/app/entrypoint/autodig.go", dir), "output file path")
-	flag.StringVar(&tag, "tag", "", "tag, only support one")
 }
 
 func main() {
@@ -31,15 +29,11 @@ func main() {
 	flag.Parse()
 	scanDirFlag := flag.Lookup("scan")
 	outputFileFlag := flag.Lookup("output")
-	tagFlag := flag.Lookup("tag")
 	if scanDirFlag != nil {
 		scanDir = scanDirFlag.Value.String()
 	}
 	if outputFileFlag != nil {
 		outputFile = outputFileFlag.Value.String()
-	}
-	if tagFlag != nil {
-		tag = tagFlag.Value.String()
 	}
 	fmt.Println("dir", os.Args[0])
 	fmt.Println("scanDir", scanDir)
@@ -51,7 +45,7 @@ func main() {
 			scanDirs = append(scanDirs, s)
 		}
 	}
-	err := dep.NewAutodig(scanDirs, outputFile, tag).GenDigFile()
+	err := dep.NewAutodig(scanDirs, outputFile).GenDigFile()
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
