@@ -75,17 +75,17 @@ func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.
 			comment.name = name
 		}
 		interfaceName := fmt.Sprintf("%v", result.Type)
-		ss := interfaceReturns[interfaceName]
+		ss := recorder.interfaceReturns[interfaceName]
 		if comment.name != "" {
 			name = comment.name
 		}
 		if inSlice(ss, name) {
-			f, h := interfaceReturnsToFuncsToStruct[interfaceName]
+			f, h := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
 			if h {
-				interfaceFuncsToStruct[f] = append(interfaceFuncsToStruct[f], name)
+				recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 			} else {
-				interfaceFuncsToStruct[result] = []string{name}
-				interfaceReturnsToFuncsToStruct[interfaceName] = result
+				recorder.interfaceFuncsToStruct[result] = []string{name}
+				recorder.interfaceReturnsToFuncsToStruct[interfaceName] = result
 			}
 		}
 		if fal && len(ss) <= 1 {
@@ -130,16 +130,4 @@ func (h *funcDeclHandler) fillFuncBody(funcDecl *ast.FuncDecl) {
 			},
 		},
 	}
-}
-
-func hasAutodigDocFunc(funcDecl *ast.FuncDecl) bool {
-	if funcDecl.Doc == nil || len(funcDecl.Doc.List) == 0 {
-		return false
-	}
-	for _, comment := range funcDecl.Doc.List {
-		if strings.Contains(comment.Text, "@autodig") {
-			return true
-		}
-	}
-	return false
 }

@@ -67,18 +67,18 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 				comment.name = structNameIdent.Name
 			}
 			interfaceName := fmt.Sprintf("%v", field.Type)
-			ss := interfaceReturns[interfaceName]
+			ss := recorder.interfaceReturns[interfaceName]
 			name := structNameIdent.Name
 			if comment.name != "" {
 				name = comment.name
 			}
 			if inSlice(ss, name) {
-				f, h := interfaceReturnsToFuncsToStruct[interfaceName]
+				f, h := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
 				if h {
-					interfaceFuncsToStruct[f] = append(interfaceFuncsToStruct[f], name)
+					recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 				} else {
-					interfaceFuncsToStruct[field] = []string{name}
-					interfaceReturnsToFuncsToStruct[interfaceName] = field
+					recorder.interfaceFuncsToStruct[field] = []string{name}
+					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = field
 				}
 			}
 			if fal && len(ss) <= 1 {
@@ -305,16 +305,4 @@ func (h *genDeclHandler) constituteNewFunc(structName *ast.Ident, params []*ast.
 	newFunc.Type = &ast.FuncType{Params: &ast.FieldList{List: params}, Results: &results}
 	newFunc.Body = body
 	return newFunc
-}
-
-func hasAutodigDoc(genDecl *ast.GenDecl) bool {
-	if genDecl.Doc == nil || len(genDecl.Doc.List) == 0 {
-		return false
-	}
-	for _, comment := range genDecl.Doc.List {
-		if strings.Contains(comment.Text, "@autodig") {
-			return true
-		}
-	}
-	return false
 }

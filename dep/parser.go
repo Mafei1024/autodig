@@ -1,10 +1,7 @@
 package dep
 
 import (
-	"fmt"
 	"go/ast"
-	"go/token"
-	"reflect"
 	"regexp"
 	"strings"
 )
@@ -16,13 +13,9 @@ const (
 )
 
 var (
-	interfaceReturns                = make(map[string][]string)
-	interfaceReturnsToFuncsToStruct = make(map[string]*ast.Field)
-	interfaceFuncsToStruct          = make(map[*ast.Field][]string)
-	interfaceTypes                  = make(map[string]bool)
-	tagReg                          = regexp.MustCompile(`autodig:"(.+)"`)
-	docReg                          = regexp.MustCompile(`@autodig (.*)`)
-	initFieldInfo                   = &fieldInfo{ignore: false, isReturn: false}
+	tagReg        = regexp.MustCompile(`autodig:"(.+)"`)
+	docReg        = regexp.MustCompile(`@autodig (.*)`)
+	initFieldInfo = &fieldInfo{ignore: false, isReturn: false}
 )
 
 type fieldInfo struct {
@@ -34,260 +27,6 @@ type fieldInfo struct {
 
 type commentAutodig struct {
 	name string
-}
-
-func parseinterfaceFuncsToStruct() []ast.Decl {
-	decls := make([]ast.Decl, 0)
-	for iface, names := range interfaceFuncsToStruct {
-		identName := strings.Join(names, "_")
-		initFunc := &ast.FuncDecl{
-			Name: &ast.Ident{
-				Name: "New" + fmt.Sprintf("%v", identName) + "_All",
-			},
-			Type: &ast.FuncType{Params: &ast.FieldList{List: nil}},
-			Body: &ast.BlockStmt{
-				List: make([]ast.Stmt, 0),
-			},
-		}
-		params := make([]*ast.Field, 0)
-		arrNames := make([]string, 0)
-		if len(names) == 1 {
-			params = append(params, &ast.Field{Names: []*ast.Ident{{Name: "param"}}, Type: iface.Type})
-			arrNames = append(arrNames, "param")
-		} else {
-			for i, name := range names {
-				tag := fmt.Sprintf("name:\"%s\"", name)
-				ret := &ast.TypeSpec{}
-				ParamName := fmt.Sprintf("param%d", i)
-				ret.Name = &ast.Ident{
-					Name: ParamName,
-					Obj: &ast.Object{
-						Kind: ast.Typ,
-						Name: fmt.Sprintf("param%d", i),
-						Decl: ret,
-					},
-				}
-				arrNames = append(arrNames, ParamName)
-				ret.Type = &ast.StructType{
-					Fields: &ast.FieldList{
-						List: []*ast.Field{
-							{
-								Type: &ast.SelectorExpr{
-									X:   &ast.Ident{Name: "dig"},
-									Sel: &ast.Ident{Name: "In"},
-								},
-							},
-							{
-								Type: iface.Type,
-								Tag:  &ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("`%s`", tag)},
-							},
-						},
-					},
-				}
-				paramTypeStruct := ret.Type.(*ast.StructType)
-				params = append(params, &ast.Field{Names: []*ast.Ident{ret.Name}, Type: paramTypeStruct})
-			}
-
-		}
-		sliceType := &ast.ArrayType{
-			Elt: iface.Type,
-		}
-		makeCall := &ast.CallExpr{
-			Fun: &ast.Ident{Name: "make"},
-			Args: []ast.Expr{
-				sliceType,
-				&ast.BasicLit{Kind: token.INT, Value: "0"},
-				&ast.BasicLit{Kind: token.INT, Value: fmt.Sprintf("%d", len(names))},
-			},
-		}
-		resultsVar := &ast.Ident{Name: "results"}
-		initFunc.Body.List = append(initFunc.Body.List,
-			&ast.DeclStmt{
-				Decl: &ast.GenDecl{
-					Tok: token.VAR,
-					Specs: []ast.Spec{
-						&ast.ValueSpec{
-							Names:  []*ast.Ident{resultsVar},
-							Type:   sliceType,
-							Values: []ast.Expr{makeCall},
-						},
-					},
-				},
-			},
-		)
-		for _, name := range arrNames {
-			providerVar := &ast.Ident{Name: name}
-			appendCall := &ast.CallExpr{
-				Fun: &ast.Ident{Name: "append"},
-				Args: []ast.Expr{
-					resultsVar,
-					providerVar,
-				},
-			}
-			initFunc.Body.List = append(initFunc.Body.List,
-				&ast.AssignStmt{
-					Lhs: []ast.Expr{resultsVar},
-					Tok: token.ASSIGN,
-					Rhs: []ast.Expr{appendCall},
-				},
-			)
-		}
-		initFunc.Body.List = append(initFunc.Body.List,
-			&ast.ReturnStmt{
-				Results: []ast.Expr{resultsVar, &ast.Ident{Name: "nil"}},
-			},
-		)
-
-		initFunc.Type = &ast.FuncType{
-			Params: &ast.FieldList{List: params},
-			Results: &ast.FieldList{List: []*ast.Field{
-				{
-					Type: sliceType,
-				},
-				{
-					Type: &ast.Ident{Name: "error"},
-				},
-			}}}
-		decls = append(decls, initFunc)
-	}
-	return decls
-}
-
-func parseInterfaceList(decls []ast.Decl) error {
-	for _, decl := range decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-		if genDecl.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			// 检查是否为接口类型
-			if _, isInterface := typeSpec.Type.(*ast.InterfaceType); isInterface {
-				interfaceTypes[typeSpec.Name.Name] = true
-			}
-		}
-	}
-	// 解析所有结构体,并收集所有实现接口集
-	for _, decl := range decls {
-		// 方法中的初始化
-		if reflect.TypeOf(decl).Elem().Name() == "FuncDecl" {
-			funcDecl, ok := decl.(*ast.FuncDecl)
-			if !ok {
-				continue
-			}
-			if !hasAutodigDocFunc(funcDecl) {
-				continue
-			}
-			if len(funcDecl.Type.Results.List) == 0 {
-				continue
-			}
-			// 判断返回的是否是接口类型
-			returnType := funcDecl.Type.Results.List[0].Type
-			interfaceName := getTypeName(returnType)
-			if interfaceName == "" || !isInterfaceType(interfaceName) {
-				continue
-			}
-			var comment *commentAutodig
-			for i := 0; i < len(funcDecl.Doc.List); i++ {
-				comment = parseComment(funcDecl.Doc.List[i].Text)
-				if comment != nil {
-					break
-				}
-			}
-			digName := fmt.Sprintf("%v", funcDecl.Name)
-			if comment != nil && comment.name != "" {
-				digName = comment.name
-			}
-			returnName := fmt.Sprintf("%v", funcDecl.Type.Results.List[0].Type)
-			ss := interfaceReturns[returnName]
-			if len(ss) == 0 {
-				interfaceReturns[returnName] = make([]string, 0)
-			}
-			if inSlice(interfaceReturns[returnName], digName) {
-				return fmt.Errorf(returnName + " have multiple name:" + digName)
-			}
-			interfaceReturns[returnName] = append(interfaceReturns[returnName], digName)
-			continue
-		}
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-		if !hasAutodigDoc(genDecl) {
-			continue
-		}
-		fal, name, structType := checkGenDecl(genDecl)
-		if !fal {
-			continue
-		}
-		fields := structType.Fields.List
-		if len(fields) == 0 {
-			continue
-		}
-		var comment *commentAutodig
-		for i := 0; i < len(genDecl.Doc.List); i++ {
-			comment = parseComment(genDecl.Doc.List[i].Text)
-			if comment != nil {
-				break
-			}
-		}
-		digName := name.Name
-		if comment != nil && comment.name != "" {
-			digName = comment.name
-		}
-		for _, field := range fields {
-			if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
-				// 判断返回的是否是接口类型
-				interfaceName := getTypeName(field.Type)
-				if interfaceName == "" || !isInterfaceType(interfaceName) {
-					continue
-				}
-				returnName := fmt.Sprintf("%v", field.Type)
-				ss := interfaceReturns[returnName]
-				if len(ss) == 0 {
-					interfaceReturns[returnName] = make([]string, 0)
-				}
-				if inSlice(interfaceReturns[returnName], digName) {
-					return fmt.Errorf(returnName, " have multiple name:", digName)
-				}
-				interfaceReturns[returnName] = append(interfaceReturns[returnName], digName)
-				break
-			}
-		}
-	}
-	return nil
-}
-
-func isInterfaceType(typeName string) bool {
-	// 处理包名.类型名的情况
-	if strings.Contains(typeName, ".") {
-		parts := strings.Split(typeName, ".")
-		typeName = parts[len(parts)-1]
-	}
-	return interfaceTypes[typeName]
-}
-
-func getTypeName(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		return getTypeName(t.X)
-	case *ast.SelectorExpr:
-		// 处理包名.类型名的情况
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return ident.Name + "." + t.Sel.Name
-		}
-		return t.Sel.Name
-	default:
-		return ""
-	}
 }
 
 func parseFieldInfo(field *ast.Field) *fieldInfo {
@@ -342,6 +81,30 @@ func parseComment(doc string) *commentAutodig {
 func inSlice[T comparable](arr []T, value T) bool {
 	for _, v := range arr {
 		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAutodigDoc(genDecl *ast.GenDecl) bool {
+	if genDecl.Doc == nil || len(genDecl.Doc.List) == 0 {
+		return false
+	}
+	for _, comment := range genDecl.Doc.List {
+		if strings.Contains(comment.Text, "@autodig") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAutodigDocFunc(funcDecl *ast.FuncDecl) bool {
+	if funcDecl.Doc == nil || len(funcDecl.Doc.List) == 0 {
+		return false
+	}
+	for _, comment := range funcDecl.Doc.List {
+		if strings.Contains(comment.Text, "@autodig") {
 			return true
 		}
 	}

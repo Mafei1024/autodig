@@ -6,16 +6,13 @@ import (
 	dig "go.uber.org/dig"
 )
 
-func demo_NewControllerDemo5() ControllerI {
-	return NewControllerDemo5()
-}
-func demo_NewAbGrpcClient() *GrpcClient {
-	return NewAbGrpcClient()
-}
-func NewdemoMy() (Me, error) {
+func NewdemoS2() (Self, error) {
 	var autoDigErr error
-	my := My{DigReturn: nil}
-	return &my, autoDigErr
+	s2 := S2{DigReturn: nil}
+	return &s2, autoDigErr
+}
+func demo_NewS1() Self {
+	return NewS1()
 }
 func NewdemoB(SS []Self, demoBParam struct {
 	dig.In
@@ -36,13 +33,24 @@ func NewdemoService(GrpcClient *GrpcClient, demoServiceParam struct {
 	service := Service{GrpcClient: GrpcClient, AbGrpcClient: demoServiceParam.AbGrpcClient}
 	return &service, autoDigErr
 }
-func NewdemoS2() (Self, error) {
-	var autoDigErr error
-	s2 := S2{DigReturn: nil}
-	return &s2, autoDigErr
+func demo_NewControllerDemo5() ControllerI {
+	return NewControllerDemo5()
 }
-func demo_NewS2() Self {
-	return NewS2()
+func demo_NewAbGrpcClient() *GrpcClient {
+	return NewAbGrpcClient()
+}
+func NewdemoMy() (Me, error) {
+	var autoDigErr error
+	my := My{DigReturn: nil}
+	return &my, autoDigErr
+}
+func demo_NewMy() Me {
+	return NewMy()
+}
+func NewdemoS1() (Self, error) {
+	var autoDigErr error
+	s1 := S1{DigReturn: nil}
+	return &s1, autoDigErr
 }
 func NewdemoControllerDemo3() (ControllerI, error) {
 	var autoDigErr error
@@ -52,13 +60,8 @@ func NewdemoControllerDemo3() (ControllerI, error) {
 func demo_NewControllerDemo4() ControllerI {
 	return NewControllerDemo4()
 }
-func NewdemoS1() (Self, error) {
-	var autoDigErr error
-	s1 := S1{DigReturn: nil}
-	return &s1, autoDigErr
-}
-func demo_NewS1() Self {
-	return NewS1()
+func demo_NewS2() Self {
+	return NewS2()
 }
 func NewdemoControllerDemo1() (ControllerI, error) {
 	var autoDigErr error
@@ -70,7 +73,31 @@ func NewdemoControllerDemo2() (ControllerI, error) {
 	controllerdemo2 := ControllerDemo2{DigReturn: nil}
 	return &controllerdemo2, autoDigErr
 }
-func NewS1_S2_NewS1_NewS2_All(param0 struct {
+func GetNameMapBy_My_NewMy(param0 struct {
+	dig.In
+	Me `name:"My"`
+}, param1 struct {
+	dig.In
+	Me `name:"NewMy"`
+}) map[string]Me {
+	var results map[string]Me = make(map[string]Me)
+	results["My"] = param0
+	results["NewMy"] = param1
+	return results
+}
+func GetSliceBy_My_NewMy(param0 struct {
+	dig.In
+	Me `name:"My"`
+}, param1 struct {
+	dig.In
+	Me `name:"NewMy"`
+}) []Me {
+	var results []Me = make([]Me, 0, 2)
+	results = append(results, param0)
+	results = append(results, param1)
+	return results
+}
+func GetNameMapBy_S1_S2_NewS1_NewS2(param0 struct {
 	dig.In
 	Self `name:"S1"`
 }, param1 struct {
@@ -82,15 +109,35 @@ func NewS1_S2_NewS1_NewS2_All(param0 struct {
 }, param3 struct {
 	dig.In
 	Self `name:"NewS2"`
-}) ([]Self, error) {
+}) map[string]Self {
+	var results map[string]Self = make(map[string]Self)
+	results["S1"] = param0
+	results["S2"] = param1
+	results["NewS1"] = param2
+	results["NewS2"] = param3
+	return results
+}
+func GetSliceBy_S1_S2_NewS1_NewS2(param0 struct {
+	dig.In
+	Self `name:"S1"`
+}, param1 struct {
+	dig.In
+	Self `name:"S2"`
+}, param2 struct {
+	dig.In
+	Self `name:"NewS1"`
+}, param3 struct {
+	dig.In
+	Self `name:"NewS2"`
+}) []Self {
 	var results []Self = make([]Self, 0, 4)
 	results = append(results, param0)
 	results = append(results, param1)
 	results = append(results, param2)
 	results = append(results, param3)
-	return results, nil
+	return results
 }
-func NewControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5_All(param0 struct {
+func GetNameMapBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5(param0 struct {
 	dig.In
 	ControllerI `name:"ControllerDemo1"`
 }, param1 struct {
@@ -105,41 +152,64 @@ func NewControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5_All(param0 s
 }, param4 struct {
 	dig.In
 	ControllerI `name:"ncd5"`
-}) ([]ControllerI, error) {
+}) map[string]ControllerI {
+	var results map[string]ControllerI = make(map[string]ControllerI)
+	results["ControllerDemo1"] = param0
+	results["ControllerDemo2"] = param1
+	results["cd3"] = param2
+	results["NewControllerDemo4"] = param3
+	results["ncd5"] = param4
+	return results
+}
+func GetSliceBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5(param0 struct {
+	dig.In
+	ControllerI `name:"ControllerDemo1"`
+}, param1 struct {
+	dig.In
+	ControllerI `name:"ControllerDemo2"`
+}, param2 struct {
+	dig.In
+	ControllerI `name:"cd3"`
+}, param3 struct {
+	dig.In
+	ControllerI `name:"NewControllerDemo4"`
+}, param4 struct {
+	dig.In
+	ControllerI `name:"ncd5"`
+}) []ControllerI {
 	var results []ControllerI = make([]ControllerI, 0, 5)
 	results = append(results, param0)
 	results = append(results, param1)
 	results = append(results, param2)
 	results = append(results, param3)
 	results = append(results, param4)
-	return results, nil
-}
-func NewMy_All(param Me) ([]Me, error) {
-	var results []Me = make([]Me, 0, 1)
-	results = append(results, param)
-	return results, nil
+	return results
 }
 func init() {
 	dep.MustProvide([]interface {
 	}{NewdemoS1}, dig.Name("S1"))
 	dep.MustProvide([]interface {
-	}{NewdemoControllerDemo1}, dig.Name("ControllerDemo1"))
+	}{demo_NewControllerDemo5}, dig.Name("ncd5"))
+	dep.MustProvide([]interface {
+	}{NewdemoControllerDemo2}, dig.Name("ControllerDemo2"))
 	dep.MustProvide([]interface {
 	}{demo_NewS2}, dig.Name("NewS2"))
 	dep.MustProvide([]interface {
-	}{demo_NewAbGrpcClient}, dig.Name("abGrpcClient"))
+	}{NewdemoControllerDemo1}, dig.Name("ControllerDemo1"))
 	dep.MustProvide([]interface {
-	}{NewdemoMy, NewdemoB, demo_NewGrpcClient, NewdemoService, NewS1_S2_NewS1_NewS2_All, NewControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5_All, NewMy_All})
+	}{NewdemoMy}, dig.Name("My"))
+	dep.MustProvide([]interface {
+	}{demo_NewMy}, dig.Name("NewMy"))
 	dep.MustProvide([]interface {
 	}{NewdemoS2}, dig.Name("S2"))
+	dep.MustProvide([]interface {
+	}{demo_NewS1}, dig.Name("NewS1"))
+	dep.MustProvide([]interface {
+	}{NewdemoB, demo_NewGrpcClient, NewdemoService, GetNameMapBy_My_NewMy, GetSliceBy_My_NewMy, GetNameMapBy_S1_S2_NewS1_NewS2, GetSliceBy_S1_S2_NewS1_NewS2, GetNameMapBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5, GetSliceBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5})
+	dep.MustProvide([]interface {
+	}{demo_NewAbGrpcClient}, dig.Name("abGrpcClient"))
 	dep.MustProvide([]interface {
 	}{NewdemoControllerDemo3}, dig.Name("cd3"))
 	dep.MustProvide([]interface {
 	}{demo_NewControllerDemo4}, dig.Name("NewControllerDemo4"))
-	dep.MustProvide([]interface {
-	}{demo_NewS1}, dig.Name("NewS1"))
-	dep.MustProvide([]interface {
-	}{NewdemoControllerDemo2}, dig.Name("ControllerDemo2"))
-	dep.MustProvide([]interface {
-	}{demo_NewControllerDemo5}, dig.Name("ncd5"))
 }

@@ -97,7 +97,8 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 		decls = append(decls, fileAST.Decls...)
 	}
 	// 解析并收集接口列表
-	if err := parseInterfaceList(decls); err != nil {
+	recorder.Init()
+	if err := recorder.parseInterfaceList(decls); err != nil {
 		return nil, err
 	}
 	// 第二次扫描：生成工厂函数
@@ -121,7 +122,7 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 		}
 	}
 	// 生成接口聚合函数
-	interfaceAggFuncs := parseinterfaceFuncsToStruct()
+	interfaceAggFuncs := recorder.parseinterfaceFuncsToStruct()
 	funcs = append(funcs, interfaceAggFuncs...)
 	for _, i := range interfaceAggFuncs {
 		if allDigFuncs[""] == nil {
