@@ -82,7 +82,6 @@ func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.
 		if comment.name != "" {
 			name = comment.name
 		}
-		fmt.Println(interfaceName, ">>>>>>>>>", ss, ">>>>>>>>>>>", name)
 		if inSlice(ss, name) {
 			expr, err := h.fieldHandler.changeImportExpr(result.Type)
 			if err != nil {
