@@ -14,15 +14,15 @@ var (
 
 type InterfaceRecorder struct {
 	interfaceReturns                map[string][]string
-	interfaceReturnsToFuncsToStruct map[string]*ast.Field
-	interfaceFuncsToStruct          map[*ast.Field][]string
+	interfaceReturnsToFuncsToStruct map[string]ast.Expr
+	interfaceFuncsToStruct          map[ast.Expr][]string
 	interfaceTypes                  map[string]bool
 }
 
 func (i *InterfaceRecorder) Init() {
 	i.interfaceReturns = make(map[string][]string)
-	i.interfaceReturnsToFuncsToStruct = make(map[string]*ast.Field)
-	i.interfaceFuncsToStruct = make(map[*ast.Field][]string)
+	i.interfaceReturnsToFuncsToStruct = make(map[string]ast.Expr)
+	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
 	i.interfaceTypes = make(map[string]bool)
 }
 
@@ -34,7 +34,7 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 		makeMap := true
 		if len(names) == 1 {
 			makeMap = false
-			params = append(params, &ast.Field{Names: []*ast.Ident{{Name: "param"}}, Type: iface.Type})
+			params = append(params, &ast.Field{Names: []*ast.Ident{{Name: "param"}}, Type: iface})
 			arrNames = append(arrNames, "param")
 		} else {
 			for idx, name := range names {
@@ -60,7 +60,7 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 								},
 							},
 							{
-								Type: iface.Type,
+								Type: iface,
 								Tag:  &ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("`%s`", tag)},
 							},
 						},
@@ -78,7 +78,7 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 	return decls
 }
 
-func (i *InterfaceRecorder) getInitMapFunc(names []string, iface *ast.Field, arrNames []string, params []*ast.Field) *ast.FuncDecl {
+func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
 	identName := strings.Join(names, "_")
 	initMapFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
@@ -91,7 +91,7 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface *ast.Field, arr
 	}
 	mapType := &ast.MapType{
 		Key:   &ast.Ident{Name: "string"},
-		Value: iface.Type,
+		Value: iface,
 	}
 	makeCall := &ast.CallExpr{
 		Fun: &ast.Ident{Name: "make"},
@@ -145,7 +145,7 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface *ast.Field, arr
 	return initMapFunc
 }
 
-func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface *ast.Field, arrNames []string, params []*ast.Field) *ast.FuncDecl {
+func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
 	identName := strings.Join(names, "_")
 	initSliceFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
@@ -157,7 +157,7 @@ func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface *ast.Field, a
 		},
 	}
 	sliceType := &ast.ArrayType{
-		Elt: iface.Type,
+		Elt: iface,
 	}
 	makeCall := &ast.CallExpr{
 		Fun: &ast.Ident{Name: "make"},

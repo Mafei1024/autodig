@@ -44,7 +44,11 @@ func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.Func
 	if comment == nil {
 		return nil, nil, fmt.Errorf("parse func decl err, funcName:%s, file:%s", funcDecl.Name.Name, h.fileCtx.file)
 	}
-	err := h.changeFieldsImports(funcDecl.Type.Params)
+	common, err := h.refactorCommon(comment, funcDecl)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = h.changeFieldsImports(funcDecl.Type.Params)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,11 +59,10 @@ func (h *funcDeclHandler) buildFuncDeclByFunc(funcDecl *ast.FuncDecl) (*ast.Func
 	h.fillFuncBody(funcDecl)
 	funcDecl.Name.Name = fmt.Sprintf("%s_%s", h.fileCtx.importGlobalName, funcDecl.Name.Name)
 	funcDecl.Doc = nil
-
-	return funcDecl, h.refactorCommon(comment, funcDecl), nil
+	return funcDecl, common, nil
 }
 
-func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.FuncDecl) *commentAutodig {
+func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.FuncDecl) (*commentAutodig, error) {
 	for _, result := range funcDecl.Type.Results.List {
 		fNames := strings.Split(fmt.Sprintf("%v", funcDecl.Name), "_")
 		name := fNames[len(fNames)-1]
@@ -79,20 +82,25 @@ func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.
 		if comment.name != "" {
 			name = comment.name
 		}
+		fmt.Println(interfaceName, ">>>>>>>>>", ss, ">>>>>>>>>>>", name)
 		if inSlice(ss, name) {
+			expr, err := h.fieldHandler.changeImportExpr(result.Type)
+			if err != nil {
+				return nil, err
+			}
 			f, h := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
 			if h {
 				recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 			} else {
-				recorder.interfaceFuncsToStruct[result] = []string{name}
-				recorder.interfaceReturnsToFuncsToStruct[interfaceName] = result
+				recorder.interfaceFuncsToStruct[expr] = []string{name}
+				recorder.interfaceReturnsToFuncsToStruct[interfaceName] = expr
 			}
 		}
 		if fal && len(ss) <= 1 {
 			comment.name = ""
 		}
 	}
-	return comment
+	return comment, nil
 }
 
 func (h *funcDeclHandler) changeFieldsImports(fields *ast.FieldList) error {

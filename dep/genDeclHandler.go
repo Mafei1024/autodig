@@ -48,11 +48,11 @@ func (h *genDeclHandler) buildNewFuncByGenDecl(genDecl *ast.GenDecl) (structName
 		}
 	}
 	newFunc, err = h.buildNewFuncByStruct(structNameIdent, specType)
-	comment = h.refactorCommon(specType, comment, structNameIdent)
+	comment, err = h.refactorCommon(specType, comment, structNameIdent)
 	return
 }
 
-func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *commentAutodig, structNameIdent *ast.Ident) *commentAutodig {
+func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *commentAutodig, structNameIdent *ast.Ident) (*commentAutodig, error) {
 	for _, field := range specType.Fields.List {
 		if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
 			fal := false
@@ -73,12 +73,16 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 				name = comment.name
 			}
 			if inSlice(ss, name) {
-				f, h := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
-				if h {
+				expr, err := h.fieldHandler.changeImportExpr(field.Type)
+				if err != nil {
+					return nil, err
+				}
+				f, y := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
+				if y {
 					recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 				} else {
-					recorder.interfaceFuncsToStruct[field] = []string{name}
-					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = field
+					recorder.interfaceFuncsToStruct[expr] = []string{name}
+					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = expr
 				}
 			}
 			if fal && len(ss) <= 1 {
@@ -87,7 +91,7 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 			break
 		}
 	}
-	return comment
+	return comment, nil
 }
 
 func (h *genDeclHandler) buildNewFuncByStruct(structName *ast.Ident, specType *ast.StructType) (*ast.FuncDecl, error) {
