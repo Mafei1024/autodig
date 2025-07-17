@@ -47,8 +47,10 @@ func main() {
 	}
 	err := dep.NewAutodig(scanDirs, outputFile).GenDigFile()
 	if err != nil {
+		fmt.Println("\033[31m=========autodig failed!!!==========\033[0m")
 		fmt.Println(err)
-		panic(err)
+		fmt.Println("\033[31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\033[0m")
+		return
 	}
-	fmt.Println("\033[32m=========autodig success!!==========\033[0m")
+	fmt.Println("\033[32m=========autodig success!!!==========\033[0m")
 }

@@ -122,7 +122,7 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 		}
 	}
 	// 生成接口聚合函数
-	interfaceAggFuncs := recorder.parseinterfaceFuncsToStruct()
+	interfaceAggFuncs := recorder.parseInterfaceToStructFuncs()
 	funcs = append(funcs, interfaceAggFuncs...)
 	for _, i := range interfaceAggFuncs {
 		if allDigFuncs[""] == nil {

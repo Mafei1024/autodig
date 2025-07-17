@@ -34,17 +34,14 @@ func (a *Autodig) GenDigFile() error {
 	}
 	decls, outputPkgName, err := a.genDecls()
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	outputfile, err := os.Create(a.outputDir)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	err = a.write(outputfile, outputPkgName, decls)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	return nil

@@ -15,11 +15,6 @@ func (m *My) Speak() {
 
 }
 
-// @autodig
-func NewMy() Me {
-	return &My{DigReturn: nil}
-}
-
 type Self interface {
 	Run()
 }

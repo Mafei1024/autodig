@@ -6,8 +6,9 @@ autodig是基于go-ast的自动生成[dig](https://github.com/uber-go/dig)的依
 #### 1、删除了tag标签的使用与扫描
 #### 2、删了ingroup与outgroup
 #### 3、保留了多个结构体使用name的区分方式
-#### 4、在保留了单个接口单个实现的同时，增加了会返回一个实现的数组（实际如果只有一个就可以不使用，并且如果这个结构还被加了name，获取接口数组时就会报错！！！）
-#### 5、在单个接口多个实现时，会默认去为所有实现的结构体写一个name，并把所有的实现集成到一个数组中
+#### 4、在单个接口多个实现时，会默认去为所有实现的结构体写一个name，并把所有的实现集成到一个数组中
+#### 5、在单个接口多个实现时，会默认去为所有实现的结构体生成一个以name为key类型string的Map
+#### 6、只有接口只有单个实现时，不会再生成接口数组和Map
 
 ## 基础用法
 
@@ -188,7 +189,7 @@ func NewdemoControllerDemo3(Service *demo.Service) (demo.ControllerI, error) {
     return &controllerdemo, autoDigErr
 }
 
-func NewControllerIAll(ControllerIParam0 struct {
+func GetSliceBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5(ControllerIParam0 struct {
     dig.In
     ControllerI `name:"ControllerDemo1"`
 }, ControllerIParam1 struct {
@@ -211,6 +212,30 @@ func NewControllerIAll(ControllerIParam0 struct {
     results = append(results, ControllerIParam3)
     results = append(results, ControllerIParam4)
     return results, nil
+}
+func GetNameMapBy_ControllerDemo1_ControllerDemo2_cd3_NewControllerDemo4_ncd5(param0 struct {
+    dig.In
+    ControllerI `name:"ControllerDemo1"`
+}, param1 struct {
+    dig.In
+    ControllerI `name:"ControllerDemo2"`
+}, param2 struct {
+    dig.In
+    ControllerI `name:"cd3"`
+}, param3 struct {
+    dig.In
+    ControllerI `name:"NewControllerDemo4"`
+}, param4 struct {
+    dig.In
+    ControllerI `name:"ncd5"`
+}) map[string]ControllerI {
+    var results map[string]ControllerI = make(map[string]ControllerI)
+    results["ControllerDemo1"] = param0
+    results["ControllerDemo2"] = param1
+    results["cd3"] = param2
+    results["NewControllerDemo4"] = param3
+    results["ncd5"] = param4
+    return results
 }
 func init(){
     dep.MustProvide([]interface {
