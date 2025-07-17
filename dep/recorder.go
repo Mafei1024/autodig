@@ -29,44 +29,50 @@ func (i *InterfaceRecorder) Init() {
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 	decls := make([]ast.Decl, 0)
 	for iface, names := range i.interfaceFuncsToStruct {
-		if len(names) == 1 {
-			continue
-		}
 		params := make([]*ast.Field, 0)
 		arrNames := make([]string, 0)
-		for idx, name := range names {
-			tag := fmt.Sprintf("name:\"%s\"", name)
-			ret := &ast.TypeSpec{}
-			ParamName := fmt.Sprintf("param%d", idx)
-			ret.Name = &ast.Ident{
-				Name: ParamName,
-				Obj: &ast.Object{
-					Kind: ast.Typ,
-					Name: fmt.Sprintf("param%d", idx),
-					Decl: ret,
-				},
-			}
-			arrNames = append(arrNames, ParamName)
-			ret.Type = &ast.StructType{
-				Fields: &ast.FieldList{
-					List: []*ast.Field{
-						{
-							Type: &ast.SelectorExpr{
-								X:   &ast.Ident{Name: "dig"},
-								Sel: &ast.Ident{Name: "In"},
+		makeMap := true
+		if len(names) == 1 {
+			makeMap = false
+			params = append(params, &ast.Field{Names: []*ast.Ident{{Name: "param"}}, Type: iface.Type})
+			arrNames = append(arrNames, "param")
+		} else {
+			for idx, name := range names {
+				tag := fmt.Sprintf("name:\"%s\"", name)
+				ret := &ast.TypeSpec{}
+				ParamName := fmt.Sprintf("param%d", idx)
+				ret.Name = &ast.Ident{
+					Name: ParamName,
+					Obj: &ast.Object{
+						Kind: ast.Typ,
+						Name: fmt.Sprintf("param%d", idx),
+						Decl: ret,
+					},
+				}
+				arrNames = append(arrNames, ParamName)
+				ret.Type = &ast.StructType{
+					Fields: &ast.FieldList{
+						List: []*ast.Field{
+							{
+								Type: &ast.SelectorExpr{
+									X:   &ast.Ident{Name: "dig"},
+									Sel: &ast.Ident{Name: "In"},
+								},
+							},
+							{
+								Type: iface.Type,
+								Tag:  &ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("`%s`", tag)},
 							},
 						},
-						{
-							Type: iface.Type,
-							Tag:  &ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("`%s`", tag)},
-						},
 					},
-				},
+				}
+				paramTypeStruct := ret.Type.(*ast.StructType)
+				params = append(params, &ast.Field{Names: []*ast.Ident{ret.Name}, Type: paramTypeStruct})
 			}
-			paramTypeStruct := ret.Type.(*ast.StructType)
-			params = append(params, &ast.Field{Names: []*ast.Ident{ret.Name}, Type: paramTypeStruct})
 		}
-		decls = append(decls, i.getInitMapFunc(names, iface, arrNames, params))
+		if makeMap {
+			decls = append(decls, i.getInitMapFunc(names, iface, arrNames, params))
+		}
 		decls = append(decls, i.getInitSliceFunc(names, iface, arrNames, params))
 	}
 	return decls
