@@ -16,14 +16,12 @@ type InterfaceRecorder struct {
 	interfaceReturns                map[string][]string
 	interfaceReturnsToFuncsToStruct map[string]ast.Expr
 	interfaceFuncsToStruct          map[ast.Expr][]string
-	interfaceTypes                  map[string]bool
 }
 
 func (i *InterfaceRecorder) Init() {
 	i.interfaceReturns = make(map[string][]string)
 	i.interfaceReturnsToFuncsToStruct = make(map[string]ast.Expr)
 	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
-	i.interfaceTypes = make(map[string]bool)
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
@@ -216,25 +214,6 @@ func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arr
 }
 
 func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
-	for _, decl := range decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-		if genDecl.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			// 检查是否为接口类型
-			if _, isInterface := typeSpec.Type.(*ast.InterfaceType); isInterface {
-				i.interfaceTypes[typeSpec.Name.Name] = true
-			}
-		}
-	}
 	// 解析所有结构体,并收集所有实现接口集
 	for _, decl := range decls {
 		// 方法中的初始化
@@ -249,12 +228,6 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			if len(funcDecl.Type.Results.List) == 0 {
 				continue
 			}
-			// 判断返回的是否是接口类型
-			returnType := funcDecl.Type.Results.List[0].Type
-			interfaceName := i.getTypeName(returnType)
-			if interfaceName == "" || !i.isInterfaceType(interfaceName) {
-				continue
-			}
 			var comment *commentAutodig
 			for i := 0; i < len(funcDecl.Doc.List); i++ {
 				comment = parseComment(funcDecl.Doc.List[i].Text)
@@ -266,7 +239,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			if comment != nil && comment.name != "" {
 				digName = comment.name
 			}
-			returnName := fmt.Sprintf("%v", funcDecl.Type.Results.List[0].Type)
+			returnName := i.interfaceNameParse(funcDecl.Type.Results.List[0].Type)
 			ss := i.interfaceReturns[returnName]
 			if len(ss) == 0 {
 				i.interfaceReturns[returnName] = make([]string, 0)
@@ -305,12 +278,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 		}
 		for _, field := range fields {
 			if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
-				// 判断返回的是否是接口类型
-				interfaceName := i.getTypeName(field.Type)
-				if interfaceName == "" || !i.isInterfaceType(interfaceName) {
-					continue
-				}
-				returnName := fmt.Sprintf("%v", field.Type)
+				returnName := i.interfaceNameParse(field.Type)
 				ss := i.interfaceReturns[returnName]
 				if len(ss) == 0 {
 					i.interfaceReturns[returnName] = make([]string, 0)
@@ -326,28 +294,8 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 	return nil
 }
 
-func (i *InterfaceRecorder) isInterfaceType(typeName string) bool {
-	// 处理包名.类型名的情况
-	if strings.Contains(typeName, ".") {
-		parts := strings.Split(typeName, ".")
-		typeName = parts[len(parts)-1]
-	}
-	return i.interfaceTypes[typeName]
-}
-
-func (i *InterfaceRecorder) getTypeName(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		return i.getTypeName(t.X)
-	case *ast.SelectorExpr:
-		// 处理包名.类型名的情况
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return ident.Name + "." + t.Sel.Name
-		}
-		return t.Sel.Name
-	default:
-		return ""
-	}
+func (i *InterfaceRecorder) interfaceNameParse(interfaceExpr ast.Expr) string {
+	returnName := fmt.Sprintf("%v", interfaceExpr)
+	returnName = strings.ReplaceAll(returnName, "_", "")
+	return returnName
 }

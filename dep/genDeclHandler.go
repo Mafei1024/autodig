@@ -66,23 +66,19 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 				fal = true
 				comment.name = structNameIdent.Name
 			}
-			interfaceName := fmt.Sprintf("%v", field.Type)
+			interfaceName := recorder.interfaceNameParse(field.Type)
 			ss := recorder.interfaceReturns[interfaceName]
 			name := structNameIdent.Name
 			if comment.name != "" {
 				name = comment.name
 			}
 			if inSlice(ss, name) {
-				expr, err := h.fieldHandler.changeImportExpr(field.Type)
-				if err != nil {
-					return nil, err
-				}
 				f, y := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
 				if y {
 					recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 				} else {
-					recorder.interfaceFuncsToStruct[expr] = []string{name}
-					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = expr
+					recorder.interfaceFuncsToStruct[field.Type] = []string{name}
+					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = field.Type
 				}
 			}
 			if fal && len(ss) <= 1 {

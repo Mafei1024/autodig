@@ -37,10 +37,11 @@ type ImportCtx struct {
 }
 
 func (i *ImportCtx) getGlobalImportNameByPath(path string) string {
-	if _, ok := i.globalImportMap[path]; !ok {
-		fmt.Println(path)
+	name := i.globalImportMap[path]
+	if name == nil {
+		return ""
 	}
-	return i.globalImportMap[path].globalName
+	return name.globalName
 }
 
 func (i *ImportCtx) getGlobalImportNameByFile(file string) string {
