@@ -25,16 +25,16 @@ func init() {
 }
 
 func main() {
-	f := func(err error) {
+	f := func(s string, err error) {
 		fmt.Println("\033[31m=========autodig failed!!!==========\033[0m")
-		fmt.Println(err)
+		fmt.Println(s, ":", err)
 		fmt.Println("\033[31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\033[0m")
 	}
 	defer func() {
 		if err := recover(); err != nil {
 			err2, y := err.(error)
 			if y && err2 != nil {
-				f(err2)
+				f("panic", err2)
 			}
 		}
 	}()
@@ -60,7 +60,7 @@ func main() {
 	}
 	err := dep.NewAutodig(scanDirs, outputFile).GenDigFile()
 	if err != nil {
-		f(err)
+		f("error", err)
 		return
 	}
 	fmt.Println("\033[32m=========autodig success!!!==========\033[0m")
