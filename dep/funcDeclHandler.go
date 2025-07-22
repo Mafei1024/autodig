@@ -2,6 +2,7 @@ package dep
 
 import (
 	"fmt"
+	"github.com/jinzhu/copier"
 	"go/ast"
 	"strings"
 )
@@ -63,7 +64,11 @@ func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.
 	if len(ss) == 0 {
 		return comment, nil
 	}
-	result := funcDecl.Type.Results.List[0]
+	original := funcDecl.Type.Results.List[0]
+	result := &ast.Field{}
+	if err := copier.CopyWithOption(result, original, copier.Option{DeepCopy: true}); err != nil {
+		return nil, err
+	}
 	fNames := strings.Split(fmt.Sprintf("%v", funcDecl.Name), "_")
 	name := fNames[len(fNames)-1]
 	fal := false

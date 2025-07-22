@@ -43,7 +43,10 @@ func (h *FieldHandler) changeImportExpr(expr ast.Expr) (ast.Expr, error) {
 		if h.fileCtx.importMapInfile[thisimport.Name] == h.importCtx.outputImportPath {
 			return expr.Sel, nil
 		} else {
-			thisimport.Name = h.importCtx.getGlobalImportNameByPath(h.fileCtx.importMapInfile[thisimport.Name])
+			path := h.importCtx.getGlobalImportNameByPath(h.fileCtx.importMapInfile[thisimport.Name])
+			if path != "" {
+				thisimport.Name = path
+			}
 		}
 	case Ident:
 		identExpr := expr.(*ast.Ident)

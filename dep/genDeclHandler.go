@@ -2,6 +2,7 @@ package dep
 
 import (
 	"fmt"
+	"github.com/jinzhu/copier"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -73,12 +74,20 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 				name = comment.name
 			}
 			if inSlice(ss, name) {
+				result := &ast.Field{}
+				if err := copier.CopyWithOption(result, field, copier.Option{DeepCopy: true}); err != nil {
+					return nil, err
+				}
+				expr, err := h.fieldHandler.changeImportExpr(result.Type)
+				if err != nil {
+					return nil, err
+				}
 				f, y := recorder.interfaceReturnsToFuncsToStruct[interfaceName]
 				if y {
 					recorder.interfaceFuncsToStruct[f] = append(recorder.interfaceFuncsToStruct[f], name)
 				} else {
-					recorder.interfaceFuncsToStruct[field.Type] = []string{name}
-					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = field.Type
+					recorder.interfaceFuncsToStruct[expr] = []string{name}
+					recorder.interfaceReturnsToFuncsToStruct[interfaceName] = expr
 				}
 			}
 			if fal && len(ss) <= 1 {
