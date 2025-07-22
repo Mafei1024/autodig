@@ -77,10 +77,9 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 }
 
 func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
-	identName := strings.Join(names, "_")
 	initMapFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
-			Name: "GetNameMapBy_" + fmt.Sprintf("%v", identName),
+			Name: "GetNameMapBy_" + strings.Join(names, "_"),
 		},
 		Type: &ast.FuncType{Params: &ast.FieldList{List: nil}},
 		Body: &ast.BlockStmt{
@@ -144,10 +143,9 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNa
 }
 
 func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
-	identName := strings.Join(names, "_")
 	initSliceFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
-			Name: "GetSliceBy_" + fmt.Sprintf("%v", identName),
+			Name: "GetSliceBy_" + strings.Join(names, "_"),
 		},
 		Type: &ast.FuncType{Params: &ast.FieldList{List: nil}},
 		Body: &ast.BlockStmt{
