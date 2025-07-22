@@ -293,7 +293,7 @@ func init() {
 想忽略某些Public Field时，在后面加上tag```autodig:"-"``` e.g.
 Source Code:
 ```
-//@autodig tag:!mock
+//@autodig
 type Service struct {
 	Loggers []Logger `autodig:"-"`
 	config  string
