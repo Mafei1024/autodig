@@ -291,10 +291,6 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			}
 		}
 	}
-	for s, i2 := range i.interfaceReturns {
-		fmt.Println(s, ">>>>>>>>>", i2)
-	}
-
 	return nil
 }
 
