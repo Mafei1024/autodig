@@ -97,7 +97,7 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 		decls = append(decls, fileAST.Decls...)
 	}
 	// 解析并收集接口列表
-	recorder.Init()
+	recorder.Init(importCtx)
 	if err := recorder.parseInterfaceList(decls); err != nil {
 		return nil, err
 	}

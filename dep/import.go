@@ -60,6 +60,15 @@ type importName struct {
 	globalName string
 }
 
+func (i *ImportCtx) getGlobalImportPathByGlobalName(globalName string) string {
+	for path, iName := range i.globalImportMap {
+		if iName.globalName == globalName {
+			return path
+		}
+	}
+	return ""
+}
+
 func (a *Autodig) getAllFiles(dirs []string) ([]string, error) {
 	files := make([]string, 0)
 	for _, dir := range dirs {

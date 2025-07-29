@@ -130,6 +130,8 @@ func NewControllerDemoAll(param demo.ControllerI) ([]demo.ControllerI, error) {
 #### Struct:接口有多个实现时
 接口有多个实现时，就会默认给每个实现增加一个name输入（name默认使用结构体名称）
 方法体实现同理
+####  注意事项：在接口都实现时，要避免同时在同包和异包下一起实现。下述的所有实现，和ControllerI接口要么都在同一个包下，要么都不在同一个包下
+
 Source Code:
 ```golang
 type ControllerI interface {
@@ -156,7 +158,7 @@ func NewControllerDemo4() ControllerI {
     return &ControllerDemo3{}
 }
 
-//@autodig
+//@autodig name:ncd5
 func NewControllerDemo5() ControllerI {
     return &ControllerDemo3{}
 }

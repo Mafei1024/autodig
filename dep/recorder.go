@@ -16,12 +16,14 @@ type InterfaceRecorder struct {
 	interfaceReturns                map[string][]string
 	interfaceReturnsToFuncsToStruct map[string]ast.Expr
 	interfaceFuncsToStruct          map[ast.Expr][]string
+	importCtx                       *ImportCtx
 }
 
-func (i *InterfaceRecorder) Init() {
+func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
 	i.interfaceReturns = make(map[string][]string)
 	i.interfaceReturnsToFuncsToStruct = make(map[string]ast.Expr)
 	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
+	i.importCtx = importCtx
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
@@ -289,11 +291,36 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			}
 		}
 	}
+	for s, i2 := range i.interfaceReturns {
+		fmt.Println(s, ">>>>>>>>>", i2)
+	}
+
 	return nil
 }
 
 func (i *InterfaceRecorder) interfaceNameParse(interfaceExpr ast.Expr) string {
-	returnName := fmt.Sprintf("%v", interfaceExpr)
-	returnName = strings.ReplaceAll(returnName, "_", "")
-	return returnName
+	switch expr := interfaceExpr.(type) {
+	case *ast.SelectorExpr:
+		pkgName := ""
+		if ident, ok := expr.X.(*ast.Ident); ok {
+			pkgName = ident.Name
+		}
+		interfaceName := expr.Sel.Name
+		if i.importCtx != nil && pkgName != "" {
+			// 尝试根据全局名称查找完整的包路径
+			path := i.importCtx.getGlobalImportPathByGlobalName(pkgName)
+			if path != "" {
+				return fmt.Sprintf("%s.%s", path, interfaceName)
+			}
+			// 如果找不到对应的导入路径，仍然返回完整的包名和接口名
+			return fmt.Sprintf("%s.%s", pkgName, interfaceName)
+		}
+		return interfaceName
+	case *ast.StarExpr:
+		return "*" + i.interfaceNameParse(expr.X)
+	case *ast.Ident:
+		return expr.Name
+	default:
+		return fmt.Sprintf("%v", interfaceExpr)
+	}
 }
