@@ -245,7 +245,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 				i.interfaceReturns[returnName] = make([]string, 0)
 			}
 			if inSlice(i.interfaceReturns[returnName], digName) {
-				return fmt.Errorf(returnName + " have multiple name:" + digName)
+				return fmt.Errorf("%v have multiple name:%v", returnName, digName)
 			}
 			i.interfaceReturns[returnName] = append(i.interfaceReturns[returnName], digName)
 			continue
@@ -284,7 +284,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 					i.interfaceReturns[returnName] = make([]string, 0)
 				}
 				if inSlice(i.interfaceReturns[returnName], digName) {
-					return fmt.Errorf(returnName, " have multiple name:", digName)
+					return fmt.Errorf("%v have multiple name:%v", returnName, digName)
 				}
 				i.interfaceReturns[returnName] = append(i.interfaceReturns[returnName], digName)
 				break
@@ -294,42 +294,13 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 	return nil
 }
 
-//func (i *InterfaceRecorder) interfaceNameParse(interfaceExpr ast.Expr) string {
-//	switch expr := interfaceExpr.(type) {
-//	case *ast.SelectorExpr:
-//		pkgName := ""
-//		if ident, ok := expr.X.(*ast.Ident); ok {
-//			pkgName = ident.Name
-//		}
-//		interfaceName := expr.Sel.Name
-//		if i.importCtx != nil && pkgName != "" {
-//			// 尝试根据全局名称查找完整的包路径
-//			path := i.importCtx.getGlobalImportPathByGlobalName(pkgName)
-//			if path != "" {
-//				return fmt.Sprintf("%s.%s", path, interfaceName)
-//			}
-//			// 如果找不到对应的导入路径，仍然返回完整的包名和接口名
-//			return fmt.Sprintf("%s.%s", pkgName, interfaceName)
-//		}
-//		return interfaceName
-//	case *ast.StarExpr:
-//		return "*" + i.interfaceNameParse(expr.X)
-//	case *ast.Ident:
-//		return expr.Name
-//	default:
-//		return fmt.Sprintf("%v", interfaceExpr)
-//	}
-//}
-
 func (i *InterfaceRecorder) interfaceNameParse(interfaceExpr ast.Expr) string {
 	switch expr := interfaceExpr.(type) {
 	case *ast.SelectorExpr:
-		fmt.Println(expr.Sel.Name)
 		return expr.Sel.Name
 	case *ast.StarExpr:
 		return i.interfaceNameParse(expr.X)
 	case *ast.Ident:
-		fmt.Println(expr.Name)
 		return expr.Name
 	default:
 		return fmt.Sprintf("%v", interfaceExpr)
