@@ -1,6 +1,7 @@
 package dep
 
 import (
+	"fmt"
 	"go/ast"
 	"regexp"
 	"strings"
@@ -15,9 +16,10 @@ const (
 )
 
 var (
-	tagReg        = regexp.MustCompile(`autodig:"(.+)"`)
-	docReg        = regexp.MustCompile(`@autodig (.*)`)
-	initFieldInfo = &fieldInfo{ignore: false, isReturn: false}
+	tagReg          = regexp.MustCompile(`autodig:"(.+)"`)
+	docReg          = regexp.MustCompile(`@autodig (.*)`)
+	initFieldInfo   = &fieldInfo{ignore: false, isReturn: false}
+	OutGroupNameNum = 0
 )
 
 type fieldInfo struct {
@@ -77,7 +79,8 @@ func parseComment(doc string) *commentAutodig {
 			}
 		case OutGroupName:
 			if len(params) == 2 {
-				funDoc.name = params[1]
+				OutGroupNameNum++
+				funDoc.name = fmt.Sprintf("%s%d", params[1], OutGroupNameNum)
 			}
 		}
 	}
