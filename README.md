@@ -4,7 +4,7 @@ autodig是基于go-ast的自动生成[dig](https://github.com/uber-go/dig)的依
 
 ## 与上一个版本的差异
 #### 1、删除了tag标签的使用与扫描
-#### 2、删了ingroup与outgroup
+#### 2、删了ingroup与outgroup（兼容outgroup，会生成以不同name去兼容）
 #### 3、保留了多个结构体使用name的区分方式
 #### 4、在单个接口多个实现时，会默认去为所有实现的结构体写一个name，并把所有的实现集成到一个数组中
 #### 5、在单个接口多个实现时，会默认去为所有实现的结构体生成一个以name为key类型string的Map
