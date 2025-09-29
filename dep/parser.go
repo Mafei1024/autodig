@@ -10,6 +10,8 @@ const (
 	ReturnFieldName = "DigReturn"
 	Name            = "name"
 	IgnoreName      = "-"
+	// 兼容第一版
+	OutGroupName = "outgroup"
 )
 
 var (
@@ -70,6 +72,10 @@ func parseComment(doc string) *commentAutodig {
 		params := strings.Split(eachTag, ":")
 		switch params[0] {
 		case Name:
+			if len(params) == 2 {
+				funDoc.name = params[1]
+			}
+		case OutGroupName:
 			if len(params) == 2 {
 				funDoc.name = params[1]
 			}
