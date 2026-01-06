@@ -1,4 +1,4 @@
-package demo
+package group
 
 import "fmt"
 
@@ -22,7 +22,7 @@ type Self interface {
 // @autodig
 type S1 struct {
 	DigReturn Self
-	Name      string `autodig:"-"`
+	Name      string `autodig:"-"` // 不会填充
 }
 
 // @autodig

@@ -17,6 +17,7 @@ type InterfaceRecorder struct {
 	interfaceReturnsToFuncsToStruct map[string]ast.Expr
 	interfaceFuncsToStruct          map[ast.Expr][]string
 	importCtx                       *ImportCtx
+	nameCounter                     map[string]int
 }
 
 func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
@@ -24,6 +25,7 @@ func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
 	i.interfaceReturnsToFuncsToStruct = make(map[string]ast.Expr)
 	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
 	i.importCtx = importCtx
+	i.nameCounter = make(map[string]int)
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
@@ -78,6 +80,27 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 	return decls
 }
 
+func (i *InterfaceRecorder) getAppendParam(name string, iface ast.Expr) ast.Expr {
+	var providerVar ast.Expr
+	switch expr := iface.(type) {
+	case *ast.StarExpr:
+		providerVar = &ast.SelectorExpr{
+			X: &ast.Ident{Name: name},
+			Sel: &ast.Ident{
+				Name: i.interfaceNameParse(expr.X),
+			},
+		}
+	case *ast.SelectorExpr:
+		providerVar = &ast.SelectorExpr{
+			X:   &ast.Ident{Name: name},
+			Sel: expr.Sel,
+		}
+	default:
+		providerVar = &ast.Ident{Name: name}
+	}
+	return providerVar
+}
+
 func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
 	initMapFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
@@ -115,7 +138,6 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNa
 	)
 	for idx, name := range arrNames {
 		key := &ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf("\"%s\"", names[idx])}
-		providerVar := &ast.Ident{Name: name}
 		assignStmt := &ast.AssignStmt{
 			Lhs: []ast.Expr{
 				&ast.IndexExpr{
@@ -124,7 +146,7 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNa
 				},
 			},
 			Tok: token.ASSIGN,
-			Rhs: []ast.Expr{providerVar},
+			Rhs: []ast.Expr{i.getAppendParam(name, iface)},
 		}
 		initMapFunc.Body.List = append(initMapFunc.Body.List, assignStmt)
 	}
@@ -181,12 +203,11 @@ func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arr
 		},
 	)
 	for _, name := range arrNames {
-		providerVar := &ast.Ident{Name: name}
 		appendCall := &ast.CallExpr{
 			Fun: &ast.Ident{Name: "append"},
 			Args: []ast.Expr{
 				resultsVar,
-				providerVar,
+				i.getAppendParam(name, iface),
 			},
 		}
 		initSliceFunc.Body.List = append(initSliceFunc.Body.List,
@@ -245,7 +266,12 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 				i.interfaceReturns[returnName] = make([]string, 0)
 			}
 			if inSlice(i.interfaceReturns[returnName], digName) {
-				return fmt.Errorf("%v have multiple name:%v", returnName, digName)
+				if SameName.Value {
+					i.nameCounter[digName]++
+					digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
+				} else {
+					return fmt.Errorf("%v have multiple name:%v", returnName, digName)
+				}
 			}
 			i.interfaceReturns[returnName] = append(i.interfaceReturns[returnName], digName)
 			continue
@@ -284,7 +310,12 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 					i.interfaceReturns[returnName] = make([]string, 0)
 				}
 				if inSlice(i.interfaceReturns[returnName], digName) {
-					return fmt.Errorf("%v have multiple name:%v", returnName, digName)
+					if SameName.Value {
+						i.nameCounter[digName]++
+						digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
+					} else {
+						return fmt.Errorf("%v have multiple name:%v", returnName, digName)
+					}
 				}
 				i.interfaceReturns[returnName] = append(i.interfaceReturns[returnName], digName)
 				break
