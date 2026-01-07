@@ -85,7 +85,7 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 				params = append(params, &ast.Field{Names: []*ast.Ident{ret.Name}, Type: paramTypeStruct})
 			}
 		}
-		if makeMap {
+		if makeMap && bool(!SameName.Value) {
 			decls = append(decls, i.getInitMapFunc(names, iface, arrNames, params))
 		}
 		decls = append(decls, i.getInitSliceFunc(names, iface, arrNames, params))

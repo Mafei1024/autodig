@@ -43,7 +43,7 @@ var (
 	}
 	SameName = &Cmd[myFlag]{
 		Key:      "samename",
-		Reminder: "support struct or func with the same name [Example: -samename]",
+		Reminder: "support struct or func with the same name [Example: -samename ][warning: won't being generate map]",
 	}
 	H = &Cmd[myFlag]{
 		Key: "h",
