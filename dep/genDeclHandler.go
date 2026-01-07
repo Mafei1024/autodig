@@ -2,10 +2,11 @@ package dep
 
 import (
 	"fmt"
-	"github.com/jinzhu/copier"
 	"go/ast"
 	"go/token"
 	"strings"
+
+	"github.com/jinzhu/copier"
 )
 
 type genDeclHandler struct {
@@ -57,19 +58,20 @@ func (h *genDeclHandler) refactorCommon(specType *ast.StructType, comment *comme
 	for _, field := range specType.Fields.List {
 		if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
 			fal := false
+			sName := recorder.getInterfaceFuncsToStructNameCounter(structNameIdent.Name)
 			if comment == nil {
 				fal = true
 				comment = &commentAutodig{
-					name: structNameIdent.Name,
+					name: sName,
 				}
 			}
 			if comment.name == "" {
 				fal = true
-				comment.name = structNameIdent.Name
+				comment.name = sName
 			}
 			interfaceName := recorder.interfaceNameParse(field.Type)
 			ss := recorder.interfaceReturns[interfaceName]
-			name := structNameIdent.Name
+			name := sName
 			if comment.name != "" {
 				name = comment.name
 			}

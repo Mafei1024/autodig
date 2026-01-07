@@ -13,11 +13,12 @@ var (
 )
 
 type InterfaceRecorder struct {
-	interfaceReturns                map[string][]string
-	interfaceReturnsToFuncsToStruct map[string]ast.Expr
-	interfaceFuncsToStruct          map[ast.Expr][]string
-	importCtx                       *ImportCtx
-	nameCounter                     map[string]int
+	interfaceReturns                  map[string][]string
+	interfaceReturnsToFuncsToStruct   map[string]ast.Expr
+	interfaceFuncsToStruct            map[ast.Expr][]string
+	interfaceFuncsToStructNameCounter map[string]int
+	importCtx                         *ImportCtx
+	nameCounter                       map[string]int
 }
 
 func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
@@ -26,9 +27,21 @@ func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
 	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
 	i.importCtx = importCtx
 	i.nameCounter = make(map[string]int)
+	i.interfaceFuncsToStructNameCounter = make(map[string]int)
+}
+
+func (i *InterfaceRecorder) getInterfaceFuncsToStructNameCounter(name string) string {
+	if SameName.Value {
+		i.interfaceFuncsToStructNameCounter[name]++
+		if i.interfaceFuncsToStructNameCounter[name] > 1 {
+			return fmt.Sprintf("%s%d", name, i.interfaceFuncsToStructNameCounter[name])
+		}
+	}
+	return name
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
+	fmt.Println(i.interfaceReturns)
 	decls := make([]ast.Decl, 0)
 	for iface, names := range i.interfaceFuncsToStruct {
 		params := make([]*ast.Field, 0)
@@ -265,11 +278,13 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			if len(ss) == 0 {
 				i.interfaceReturns[returnName] = make([]string, 0)
 			}
-			if inSlice(i.interfaceReturns[returnName], digName) {
-				if SameName.Value {
-					i.nameCounter[digName]++
+			if SameName.Value {
+				i.nameCounter[digName]++
+				if i.nameCounter[digName] > 1 {
 					digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
-				} else {
+				}
+			} else {
+				if inSlice(i.interfaceReturns[returnName], digName) {
 					return fmt.Errorf("%v have multiple name:%v", returnName, digName)
 				}
 			}
@@ -309,11 +324,13 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 				if len(ss) == 0 {
 					i.interfaceReturns[returnName] = make([]string, 0)
 				}
-				if inSlice(i.interfaceReturns[returnName], digName) {
-					if SameName.Value {
-						i.nameCounter[digName]++
+				if SameName.Value {
+					i.nameCounter[digName]++
+					if i.nameCounter[digName] > 1 {
 						digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
-					} else {
+					}
+				} else {
+					if inSlice(i.interfaceReturns[returnName], digName) {
 						return fmt.Errorf("%v have multiple name:%v", returnName, digName)
 					}
 				}

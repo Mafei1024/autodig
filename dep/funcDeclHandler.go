@@ -2,9 +2,10 @@ package dep
 
 import (
 	"fmt"
-	"github.com/jinzhu/copier"
 	"go/ast"
 	"strings"
+
+	"github.com/jinzhu/copier"
 )
 
 type funcDeclHandler struct {
@@ -70,7 +71,7 @@ func (h *funcDeclHandler) refactorCommon(comment *commentAutodig, funcDecl *ast.
 		return nil, err
 	}
 	fNames := strings.Split(fmt.Sprintf("%v", funcDecl.Name), "_")
-	name := fNames[len(fNames)-1]
+	name := recorder.getInterfaceFuncsToStructNameCounter(fNames[len(fNames)-1])
 	fal := false
 	if comment == nil {
 		fal = true
