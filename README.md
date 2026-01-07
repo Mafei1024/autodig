@@ -52,4 +52,4 @@ type Demo struct{
 func NewDemo()*Demo{
 }
 ```
-按照 [代码参考](https://github.com/Mafei1024/autodig/tree/v1.5.9/demo) 进行操作。
+按照 [代码参考](https://github.com/Mafei1024/autodig/tree/feature/up_2.2/demo) 进行操作。
