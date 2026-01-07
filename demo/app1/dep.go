@@ -110,6 +110,21 @@ func NewGrpcClient() *GrpcClient {
 }
 
 // @autodig
+type Op struct {
+	DigReturn *Op
+}
+
+// @autodig
+func NewOp1() *Op {
+	return &Op{}
+}
+
+// @autodig
+func NewOp2() *Op {
+	return &Op{}
+}
+
+// @autodig
 type Service struct {
 	GrpcClient   *GrpcClient
 	AbGrpcClient *GrpcClient `autodig:"name:abGrpcClient"`
