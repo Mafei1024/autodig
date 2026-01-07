@@ -1,4 +1,4 @@
-module demo
+module github.com/Mafei1024/autodig/demo
 
 go 1.23.0
 

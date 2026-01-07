@@ -42,4 +42,14 @@ dig:
 	autodig
 	$(GOBINVAR)/autodig
 ```
-有需要条件注入， 请按照 [代码参考](https://github.com/Mafei1024/autodig/tree/v1.5.9/demo) 进行操作。
+## 使用示例
+go
+```
+// @autodig name:Demo1 (注：name按需使用)
+type Demo struct{
+}
+// @autodig name:Demo1 (注：name按需使用)
+func NewDemo()*Demo{
+}
+```
+按照 [代码参考](https://github.com/Mafei1024/autodig/tree/v1.5.9/demo) 进行操作。

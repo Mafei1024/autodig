@@ -1,8 +1,9 @@
-package group
+package user
 
 import (
-	"demo/app2/group"
 	"fmt"
+
+	"github.com/Mafei1024/autodig/demo/app2/group"
 )
 
 // @autodig

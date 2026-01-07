@@ -3,8 +3,10 @@ package dep
 import (
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"reflect"
 	"strings"
 )
@@ -89,15 +91,22 @@ func (b *fileBuilder) BuildDecls(files []string, importCtx *ImportCtx) ([]ast.De
 	allDigFuncs := make(map[string]*eachDigFuncs)
 	decls := make([]ast.Decl, 0, 512)
 	// 第一次扫描：收集所有声明用于接口分析
+	conf := &types.Config{
+		Importer: importer.Default(),
+		Error: func(err error) {
+			fmt.Printf("warning: %v\n", err)
+		},
+	}
+	recorder.Init(importCtx)
 	for _, file := range files {
 		fileAST, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
 		if err != nil {
 			return nil, fmt.Errorf("parseFile file: %s, err: %v ", file, err)
 		}
+		_, _ = conf.Check(file, fset, []*ast.File{fileAST}, recorder.types)
 		decls = append(decls, fileAST.Decls...)
 	}
 	// 解析并收集接口列表
-	recorder.Init(importCtx)
 	if err := recorder.parseInterfaceList(decls); err != nil {
 		return nil, err
 	}
