@@ -92,8 +92,11 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 	return decls
 }
 
-func (i *InterfaceRecorder) getAppendParam(name string, iface ast.Expr) ast.Expr {
+func (i *InterfaceRecorder) getAppendParam(name string, nameLen int, iface ast.Expr) ast.Expr {
 	var providerVar ast.Expr
+	if nameLen == 1 {
+		return &ast.Ident{Name: name}
+	}
 	switch expr := iface.(type) {
 	case *ast.StarExpr:
 		providerVar = &ast.SelectorExpr{
@@ -158,7 +161,7 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNa
 				},
 			},
 			Tok: token.ASSIGN,
-			Rhs: []ast.Expr{i.getAppendParam(name, iface)},
+			Rhs: []ast.Expr{i.getAppendParam(name, len(names), iface)},
 		}
 		initMapFunc.Body.List = append(initMapFunc.Body.List, assignStmt)
 	}
@@ -219,7 +222,7 @@ func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arr
 			Fun: &ast.Ident{Name: "append"},
 			Args: []ast.Expr{
 				resultsVar,
-				i.getAppendParam(name, iface),
+				i.getAppendParam(name, len(names), iface),
 			},
 		}
 		initSliceFunc.Body.List = append(initSliceFunc.Body.List,
