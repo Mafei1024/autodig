@@ -41,7 +41,6 @@ func (i *InterfaceRecorder) getInterfaceFuncsToStructNameCounter(name string) st
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
-	fmt.Println(i.interfaceReturns)
 	decls := make([]ast.Decl, 0)
 	for iface, names := range i.interfaceFuncsToStruct {
 		params := make([]*ast.Field, 0)
