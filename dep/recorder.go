@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"go/types"
 	"reflect"
 	"strings"
 )
@@ -19,7 +18,6 @@ type InterfaceRecorder struct {
 	interfaceFuncsToStruct          map[ast.Expr][]string
 	importCtx                       *ImportCtx
 	nameCounter                     map[string]int
-	types                           *types.Info
 }
 
 func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
@@ -28,11 +26,6 @@ func (i *InterfaceRecorder) Init(importCtx *ImportCtx) {
 	i.interfaceFuncsToStruct = make(map[ast.Expr][]string)
 	i.importCtx = importCtx
 	i.nameCounter = make(map[string]int)
-	i.types = &types.Info{
-		Types: make(map[ast.Expr]types.TypeAndValue),
-		Defs:  make(map[*ast.Ident]types.Object),
-		Uses:  make(map[*ast.Ident]types.Object),
-	}
 }
 
 func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
@@ -87,6 +80,27 @@ func (i *InterfaceRecorder) parseInterfaceToStructFuncs() []ast.Decl {
 	return decls
 }
 
+func (i *InterfaceRecorder) getAppendParam(name string, iface ast.Expr) ast.Expr {
+	var providerVar ast.Expr
+	switch expr := iface.(type) {
+	case *ast.StarExpr:
+		providerVar = &ast.SelectorExpr{
+			X: &ast.Ident{Name: name},
+			Sel: &ast.Ident{
+				Name: i.interfaceNameParse(expr.X),
+			},
+		}
+	case *ast.SelectorExpr:
+		providerVar = &ast.SelectorExpr{
+			X:   &ast.Ident{Name: name},
+			Sel: expr.Sel,
+		}
+	default:
+		providerVar = &ast.Ident{Name: name}
+	}
+	return providerVar
+}
+
 func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNames []string, params []*ast.Field) *ast.FuncDecl {
 	initMapFunc := &ast.FuncDecl{
 		Name: &ast.Ident{
@@ -132,7 +146,7 @@ func (i *InterfaceRecorder) getInitMapFunc(names []string, iface ast.Expr, arrNa
 				},
 			},
 			Tok: token.ASSIGN,
-			Rhs: []ast.Expr{&ast.Ident{Name: name}},
+			Rhs: []ast.Expr{i.getAppendParam(name, iface)},
 		}
 		initMapFunc.Body.List = append(initMapFunc.Body.List, assignStmt)
 	}
@@ -193,7 +207,7 @@ func (i *InterfaceRecorder) getInitSliceFunc(names []string, iface ast.Expr, arr
 			Fun: &ast.Ident{Name: "append"},
 			Args: []ast.Expr{
 				resultsVar,
-				&ast.Ident{Name: name},
+				i.getAppendParam(name, iface),
 			},
 		}
 		initSliceFunc.Body.List = append(initSliceFunc.Body.List,
@@ -233,9 +247,6 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 				continue
 			}
 			if len(funcDecl.Type.Results.List) == 0 {
-				continue
-			}
-			if !i.isInterface(funcDecl.Type.Results.List[0].Type) {
 				continue
 			}
 			var comment *commentAutodig
@@ -293,9 +304,6 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 		}
 		for _, field := range fields {
 			if len(field.Names) == 1 && field.Names[0].Name == ReturnFieldName {
-				if !i.isInterface(field.Type) {
-					continue
-				}
 				returnName := i.interfaceNameParse(field.Type)
 				ss := i.interfaceReturns[returnName]
 				if len(ss) == 0 {
@@ -315,34 +323,6 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 		}
 	}
 	return nil
-}
-
-func (i *InterfaceRecorder) isInterface(expr ast.Expr) bool {
-	value, have := i.types.Types[expr]
-	if !have || !value.IsType() {
-		return false
-	}
-
-	return i.isInterfaceType(value.Type)
-}
-
-func (i *InterfaceRecorder) isInterfaceType(typ types.Type) bool {
-	switch v := typ.(type) {
-	case *types.Interface:
-		return true
-	case *types.Named:
-		_, ok := v.Underlying().(*types.Interface)
-		return ok
-	case *types.Pointer:
-		return i.isInterfaceType(v.Elem())
-	case *types.TypeParam:
-		if constraint := v.Constraint(); constraint != nil {
-			return i.isInterfaceType(constraint)
-		}
-		return false
-	default:
-		return false
-	}
 }
 
 func (i *InterfaceRecorder) interfaceNameParse(interfaceExpr ast.Expr) string {

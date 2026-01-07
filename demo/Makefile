@@ -8,6 +8,11 @@ dig2:
 	go install github.com/Mafei1024/autodig
 	$(GOPATH)/bin/autodig -samename -scans ./app2 -output ./app2/autodig.go
 
+dig3:
+	go get github.com/Mafei1024/autodig
+	go install github.com/Mafei1024/autodig
+	$(GOPATH)/bin/autodig -samename -scans ./app3 -output ./app3/at/autodig.go
+
 help:
 	go get github.com/Mafei1024/autodig
 	go install github.com/Mafei1024/autodig
