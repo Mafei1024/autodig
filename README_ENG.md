@@ -53,9 +53,16 @@ Go code:
 ```go
 // @autodig name:Demo1 (Note: Use `name` as needed)
 type Demo struct{
+	D2 *Demo2
 }
 // @autodig name:Demo1 (Note: Use `name` as needed)
 func NewDemo()*Demo{
+}
+// @autodig
+type Demo2 struct{
+}
+func main(){
+	d,err:=dep.Invoke[*Demo]()
 }
 ```
 Refer to the [code example](https://github.com/Mafei1024/autodig/tree/feature/up_2.2/demo) for operation.
