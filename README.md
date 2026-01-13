@@ -47,9 +47,16 @@ go
 ```
 // @autodig name:Demo1 (注：name按需使用)
 type Demo struct{
+	D2 *Demo2
 }
 // @autodig name:Demo1 (注：name按需使用)
 func NewDemo()*Demo{
+}
+// @autodig
+type Demo2 struct{
+}
+func main(){
+	d,err:=dep.Invoke[*Demo]()
 }
 ```
 按照 [代码参考](https://github.com/Mafei1024/autodig/tree/feature/up_2.2/demo) 进行操作。
