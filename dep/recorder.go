@@ -34,7 +34,7 @@ func (i *InterfaceRecorder) getInterfaceFuncsToStructNameCounter(name string) st
 	if SameName.Value {
 		i.interfaceFuncsToStructNameCounter[name]++
 		if i.interfaceFuncsToStructNameCounter[name] > 1 {
-			return fmt.Sprintf("%s%d", name, i.interfaceFuncsToStructNameCounter[name])
+			return fmt.Sprintf("%s__%d", name, i.interfaceFuncsToStructNameCounter[name])
 		}
 	}
 	return name
@@ -283,7 +283,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 			if SameName.Value {
 				i.nameCounter[digName]++
 				if i.nameCounter[digName] > 1 {
-					digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
+					digName = fmt.Sprintf("%s__%d", digName, i.nameCounter[digName])
 				}
 			} else {
 				if inSlice(i.interfaceReturns[returnName], digName) {
@@ -329,7 +329,7 @@ func (i *InterfaceRecorder) parseInterfaceList(decls []ast.Decl) error {
 				if SameName.Value {
 					i.nameCounter[digName]++
 					if i.nameCounter[digName] > 1 {
-						digName = fmt.Sprintf("%s%d", digName, i.nameCounter[digName])
+						digName = fmt.Sprintf("%s__%d", digName, i.nameCounter[digName])
 					}
 				} else {
 					if inSlice(i.interfaceReturns[returnName], digName) {
