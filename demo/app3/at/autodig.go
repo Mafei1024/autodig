@@ -24,28 +24,12 @@ func Newop2Op2() (ser.OpI, error) {
 	op2 := op2.Op2{DigReturn: nil}
 	return &op2, autoDigErr
 }
-func GetNameMapBy_Op_Op_Op2(param0 struct {
+func GetSliceBy_Op_Op__2_Op2(param0 struct {
 	dig.In
 	ser.OpI `name:"Op"`
 }, param1 struct {
 	dig.In
-	ser.OpI `name:"Op"`
-}, param2 struct {
-	dig.In
-	ser.OpI `name:"Op2"`
-}) map[string]ser.OpI {
-	var results map[string]ser.OpI = make(map[string]ser.OpI)
-	results["Op"] = param0.OpI
-	results["Op"] = param1.OpI
-	results["Op2"] = param2.OpI
-	return results
-}
-func GetSliceBy_Op_Op_Op2(param0 struct {
-	dig.In
-	ser.OpI `name:"Op"`
-}, param1 struct {
-	dig.In
-	ser.OpI `name:"Op"`
+	ser.OpI `name:"Op__2"`
 }, param2 struct {
 	dig.In
 	ser.OpI `name:"Op2"`
@@ -58,9 +42,11 @@ func GetSliceBy_Op_Op_Op2(param0 struct {
 }
 func init() {
 	dep.MustProvide([]interface {
-	}{Newop1Op, Newop2Op}, dig.Name("Op"))
+	}{Newop1Op}, dig.Name("Op"))
+	dep.MustProvide([]interface {
+	}{Newop2Op}, dig.Name("Op__2"))
 	dep.MustProvide([]interface {
 	}{Newop2Op2}, dig.Name("Op2"))
 	dep.MustProvide([]interface {
-	}{GetNameMapBy_Op_Op_Op2, GetSliceBy_Op_Op_Op2})
+	}{GetSliceBy_Op_Op__2_Op2})
 }
